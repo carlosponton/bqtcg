@@ -76,11 +76,15 @@ export async function generateMetadata({
     listing.for_sale && listing.price_cop
       ? ` — ${formatCOP(listing.price_cop)}`
       : "";
+  const title = `${mode}: ${listing.card_name}${price}`;
+  const description =
+    listing.description ?? `${mode} · ${listing.card_name} en ${SITE_NAME}.`;
+
   return {
-    title: `${mode}: ${listing.card_name}${price}`,
-    description:
-      listing.description ??
-      `${mode} · ${listing.card_name} en ${SITE_NAME}.`,
+    title,
+    description,
+    alternates: { canonical: `/anuncio/${id}` },
+    openGraph: { title, description, type: "article" },
   };
 }
 

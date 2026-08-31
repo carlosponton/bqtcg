@@ -62,11 +62,13 @@ export async function generateMetadata({
   const data = await loadProfile(username);
   if (!data) return { title: "Perfil no encontrado" };
   const name = data.profile.display_name || `@${data.profile.username}`;
+  const description =
+    data.profile.bio ?? `Anuncios y colecciones de ${name} en ${SITE_NAME}.`;
   return {
     title: `${name} — ${SITE_NAME}`,
-    description:
-      data.profile.bio ??
-      `Anuncios y colecciones de ${name} en ${SITE_NAME}.`,
+    description,
+    alternates: { canonical: `/u/${username}` },
+    openGraph: { title: `${name} — ${SITE_NAME}`, description, type: "profile" },
   };
 }
 
