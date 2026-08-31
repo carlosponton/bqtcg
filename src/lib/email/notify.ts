@@ -10,6 +10,9 @@ type Content = {
   lines: string[];
   ctaLabel: string;
   ctaPath: string;
+  /** Imagen de la carta (URL https del catálogo TCGdex o de Storage). */
+  imageUrl?: string | null;
+  imageAlt?: string | null;
 };
 
 function esc(s: string): string {
@@ -19,8 +22,31 @@ function esc(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** Escapa un valor para meterlo en un atributo HTML entre comillas dobles. */
+function escAttr(s: string): string {
+  return esc(s).replace(/"/g, "&quot;");
+}
+
+/** Sólo dejamos imágenes remotas por https (catálogo o Storage). */
+function httpsImage(value: string | null | undefined): string | null {
+  const v = value?.trim();
+  return v && /^https:\/\//i.test(v) ? v : null;
+}
+
+/**
+ * Pasa la imagen por `/api/card-image`, que la transcodifica a JPEG. El catálogo
+ * TCGdex sirve `.webp` y el Outlook clásico de Windows no lo pinta.
+ */
+function proxiedImage(url: string): string {
+  return `${SITE_URL}/api/card-image?u=${encodeURIComponent(url)}`;
+}
+
 function renderHtml(c: Content): string {
   const url = `${SITE_URL}${c.ctaPath}`;
+  const img = httpsImage(c.imageUrl);
+  const imgBlock = img
+    ? `<div style="text-align:center;margin:0 0 16px"><img src="${escAttr(proxiedImage(img))}" alt="${escAttr(c.imageAlt ?? c.heading)}" width="220" style="width:100%;max-width:220px;height:auto;border-radius:12px;border:1px solid #e7e5e4" /></div>`
+    : "";
   const paras = c.lines
     .map(
       (l) =>
@@ -32,6 +58,7 @@ function renderHtml(c: Content): string {
     <tr><td style="padding:24px">
       <p style="margin:0 0 16px;font-size:13px;font-weight:600;letter-spacing:.02em;color:#6b7280;text-transform:uppercase">${esc(SITE_NAME)}</p>
       <h1 style="margin:0 0 12px;font-size:19px;color:#111827">${esc(c.heading)}</h1>
+      ${imgBlock}
       ${paras}
       <a href="${url}" style="display:inline-block;margin-top:8px;padding:10px 16px;background:#111827;color:#fff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">${esc(c.ctaLabel)}</a>
       <p style="margin:20px 0 0;font-size:12px;color:#9ca3af">Puedes desactivar estos correos en tu perfil.</p>
@@ -41,7 +68,17 @@ function renderHtml(c: Content): string {
 }
 
 function renderText(c: Content): string {
-  return `${c.heading}\n\n${c.lines.join("\n")}\n\n${c.ctaLabel}: ${SITE_URL}${c.ctaPath}\n\n— ${SITE_NAME}\nDesactiva estos correos en tu perfil.`;
+  const parts = [c.heading, "", c.lines.join("\n")];
+  const img = httpsImage(c.imageUrl);
+  if (img) parts.push("", `Imagen de la carta: ${img}`);
+  parts.push(
+    "",
+    `${c.ctaLabel}: ${SITE_URL}${c.ctaPath}`,
+    "",
+    `— ${SITE_NAME}`,
+    "Desactiva estos correos en tu perfil.",
+  );
+  return parts.join("\n");
 }
 
 /**

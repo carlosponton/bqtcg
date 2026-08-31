@@ -32,11 +32,19 @@ export async function submitReview(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Inicia sesión." };
 
-  const { data: deal } = await supabase
+  const { data: dealRow } = await supabase
     .from("deals")
-    .select("id, status, seller_id, buyer_id")
+    .select("id, status, seller_id, buyer_id, listings(card_name, image_url)")
     .eq("id", dealId)
     .maybeSingle();
+
+  const deal = dealRow as {
+    id: string;
+    status: string;
+    seller_id: string;
+    buyer_id: string;
+    listings: { card_name: string; image_url: string | null } | null;
+  } | null;
 
   if (!deal) return { ok: false, error: "Trato no encontrado." };
   if (deal.status !== "confirmed") {
@@ -70,15 +78,20 @@ export async function submitReview(input: {
     .eq("id", revieweeId)
     .maybeSingle();
 
+  const card = deal.listings?.card_name ?? null;
   after(() =>
     emailUser(revieweeId, {
       subject: "Te dejaron una reseña",
       heading: "Recibiste una reseña",
       lines: [
-        `Alguien con quien cerraste un trato te dejó una reseña (${rating}/5).`,
+        card
+          ? `Alguien con quien cerraste el trato por "${card}" te dejó una reseña (${rating}/5).`
+          : `Alguien con quien cerraste un trato te dejó una reseña (${rating}/5).`,
       ],
       ctaLabel: "Ver mi perfil",
       ctaPath: reviewee?.username ? `/u/${reviewee.username}` : "/panel/tratos",
+      imageUrl: deal.listings?.image_url ?? null,
+      imageAlt: card,
     }),
   );
 

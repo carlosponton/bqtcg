@@ -152,6 +152,7 @@ export async function createListing(
   if (isOffer && resolved.card_id) {
     const cardId = resolved.card_id;
     const cardName = resolved.card_name;
+    const cardImage = resolved.image_url;
     const meId = user.id;
     after(async () => {
       const admin = createAdminClient();
@@ -171,6 +172,8 @@ export async function createListing(
           ],
           ctaLabel: "Ver el anuncio",
           ctaPath: `/anuncio/${listingId}`,
+          imageUrl: cardImage,
+          imageAlt: cardName,
         });
       }
     });

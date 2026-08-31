@@ -26,7 +26,7 @@ type DealForEmail = {
   seller_id: string;
   buyer_id: string;
   status: "pending" | "confirmed" | "cancelled";
-  listings: { card_name: string } | null;
+  listings: { card_name: string; image_url: string | null } | null;
 };
 
 /** Correo a la contraparte del que acaba de actuar sobre el trato. */
@@ -34,7 +34,7 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("deals")
-    .select("seller_id, buyer_id, status, listings(card_name)")
+    .select("seller_id, buyer_id, status, listings(card_name, image_url)")
     .eq("id", dealId)
     .maybeSingle();
   const deal = data as DealForEmail | null;
@@ -42,6 +42,7 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
 
   const to = actorId === deal.seller_id ? deal.buyer_id : deal.seller_id;
   const card = deal.listings?.card_name ?? "una carta";
+  const imageUrl = deal.listings?.image_url ?? null;
 
   if (deal.status === "confirmed") {
     await emailUser(to, {
@@ -50,6 +51,8 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
       lines: [`Se confirmó el trato por "${card}". Ya pueden dejarse una reseña.`],
       ctaLabel: "Ver mis tratos",
       ctaPath: "/panel/tratos",
+      imageUrl,
+      imageAlt: card,
     });
   } else if (deal.status === "cancelled") {
     await emailUser(to, {
@@ -58,6 +61,8 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
       lines: [`La otra persona canceló el trato por "${card}".`],
       ctaLabel: "Ver mis tratos",
       ctaPath: "/panel/tratos",
+      imageUrl,
+      imageAlt: card,
     });
   }
 }
@@ -90,19 +95,25 @@ export async function startDeal(listingId: string): Promise<DealResult> {
     const admin = createAdminClient();
     const { data: d } = await admin
       .from("deals")
-      .select("seller_id, listings(card_name)")
+      .select("seller_id, listings(card_name, image_url)")
       .eq("id", dealId)
       .maybeSingle();
-    const deal = d as { seller_id: string; listings: { card_name: string } | null } | null;
+    const deal = d as
+      | {
+          seller_id: string;
+          listings: { card_name: string; image_url: string | null } | null;
+        }
+      | null;
     if (!deal) return;
+    const card = deal.listings?.card_name ?? "una carta";
     await emailUser(deal.seller_id, {
       subject: "Registraron un trato contigo",
       heading: "Alguien registró un trato contigo",
-      lines: [
-        `Registraron un trato por "${deal.listings?.card_name ?? "una carta"}". Confírmalo si es correcto.`,
-      ],
+      lines: [`Registraron un trato por "${card}". Confírmalo si es correcto.`],
       ctaLabel: "Ver el trato",
       ctaPath: "/panel/tratos",
+      imageUrl: deal.listings?.image_url ?? null,
+      imageAlt: card,
     });
   });
 

@@ -164,6 +164,15 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   `startDeal`→vendedor, `confirmDeal`/`cancelDeal`→contraparte, `submitReview`→
   reseñado, `createListing`(offer con card_id)→quienes buscan esa carta. Env
   nuevas: `RESEND_API_KEY`, `EMAIL_FROM` (vacías = sin correo, in-app sigue).
+  El `Content` de `notify.ts` acepta `imageUrl`/`imageAlt` opcionales (sólo
+  https) y `renderHtml` mete un `<img>` de la carta; los 4 call sites pasan
+  `listings.image_url` (o `resolved.image_url` en `createListing`). El `<img>`
+  del correo apunta a **`/api/card-image?u=<url>`** (route handler Node,
+  `src/app/api/card-image/route.ts`): baja la imagen (allowlist =
+  `assets.tcgdex.net` / `images.pokemontcg.io` / Storage público de Supabase),
+  la aplana sobre blanco y la reescala a un JPEG con `sharp` (viene con Next),
+  caché 1 año en CDN — el catálogo sirve `.webp` y el Outlook clásico de Windows
+  no lo pinta. Si algo falla, redirige (302) al original.
 - Fase 4 (hecha, salvo el deploy):
   - slice 1: `robots.ts`, `sitemap.ts` (admin client, revalidate 1h), `icon.tsx`
     / `apple-icon.tsx` / `opengraph-image.tsx` (+ `/anuncio/[id]/opengraph-image`
