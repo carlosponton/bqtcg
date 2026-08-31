@@ -18,7 +18,7 @@ export default async function PerfilPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "username, display_name, bio, city, whatsapp, show_whatsapp, onboarding_completed",
+      "username, display_name, bio, city, whatsapp, show_whatsapp, email_notifications, onboarding_completed",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -44,6 +44,7 @@ export default async function PerfilPage() {
           city: profile.city,
           whatsapp: profile.whatsapp,
           show_whatsapp: profile.show_whatsapp,
+          email_notifications: profile.email_notifications,
         }}
       />
     </div>

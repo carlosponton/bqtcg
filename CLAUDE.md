@@ -129,6 +129,13 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   comentarios `--` dentro de cuerpos plpgsql; correrlos en orden). UI: campana en
   el header (`NotificationBell`) + `/notificaciones` (`NotificationList`).
   `src/lib/notifications/{actions,query}.ts`, `timeAgo()` en `src/lib/utils.ts`.
-- Fase 3 slice 2 (pendiente): email con Resend (opt-in `profiles.email_notifications`;
-  enviar desde las server actions en paralelo al trigger in-app).
+- Fase 3 slice 2 (hecha — cierra Fase 3): email con Resend. `profiles.
+  email_notifications` (bool, default true, grant por columna; toggle en `/perfil`)
+  — migración `20260906000000_email_pref.sql`. `src/lib/email/send.ts` (POST a
+  api.resend.com; no-op si falta `RESEND_API_KEY`) + `src/lib/email/notify.ts`
+  (`emailUser(userId, content)`: admin client lee email + pref, arma HTML,
+  best-effort, nunca lanza). Se dispara con `after()` desde las server actions:
+  `startDeal`→vendedor, `confirmDeal`/`cancelDeal`→contraparte, `submitReview`→
+  reseñado, `createListing`(offer con card_id)→quienes buscan esa carta. Env
+  nuevas: `RESEND_API_KEY`, `EMAIL_FROM` (vacías = sin correo, in-app sigue).
 - Fase 4: SEO, PWA, términos + Habeas Data, analítica, lanzamiento.

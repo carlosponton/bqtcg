@@ -19,6 +19,7 @@ type Props = {
     city: string | null;
     whatsapp: string | null;
     show_whatsapp: boolean;
+    email_notifications: boolean;
   };
 };
 
@@ -98,6 +99,16 @@ export function EditProfileForm({ username, defaults }: Props) {
           className="size-4 rounded border-input"
         />
         Mostrar mi WhatsApp a usuarios con sesión iniciada
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="email_notifications"
+          defaultChecked={defaults.email_notifications}
+          className="size-4 rounded border-input"
+        />
+        Recibir avisos por correo (tratos, reseñas, cartas que busco)
       </label>
 
       {state.error ? (

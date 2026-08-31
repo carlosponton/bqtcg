@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
+import { emailUser } from "@/lib/email/notify";
 
 export type ReviewResult = { ok: true } | { ok: false; error: string };
 
@@ -67,6 +69,18 @@ export async function submitReview(input: {
     .select("username")
     .eq("id", revieweeId)
     .maybeSingle();
+
+  after(() =>
+    emailUser(revieweeId, {
+      subject: "Te dejaron una reseña",
+      heading: "Recibiste una reseña",
+      lines: [
+        `Alguien con quien cerraste un trato te dejó una reseña (${rating}/5).`,
+      ],
+      ctaLabel: "Ver mi perfil",
+      ctaPath: reviewee?.username ? `/u/${reviewee.username}` : "/panel/tratos",
+    }),
+  );
 
   revalidatePath("/panel/tratos");
   if (reviewee?.username) revalidatePath(`/u/${reviewee.username}`);

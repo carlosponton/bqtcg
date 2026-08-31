@@ -35,6 +35,7 @@ export interface Database {
           rating_avg: number;
           rating_count: number;
           onboarding_completed: boolean;
+          email_notifications: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -58,6 +59,7 @@ export interface Database {
           show_whatsapp?: boolean;
           city?: string;
           onboarding_completed?: boolean;
+          email_notifications?: boolean;
         };
         Relationships: [];
       };

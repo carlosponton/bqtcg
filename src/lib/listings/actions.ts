@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { resolveCard } from "@/lib/catalog";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { emailUser } from "@/lib/email/notify";
 import type { Database, Json } from "@/types/database";
 
 type ListingUpdate = Database["public"]["Tables"]["listings"]["Update"];
@@ -143,9 +146,39 @@ export async function createListing(
     };
   }
 
+  const listingId = data as string;
+
+  // Correo a quienes buscan esta carta (el aviso in-app lo hace el trigger).
+  if (isOffer && resolved.card_id) {
+    const cardId = resolved.card_id;
+    const cardName = resolved.card_name;
+    const meId = user.id;
+    after(async () => {
+      const admin = createAdminClient();
+      const { data: wants } = await admin
+        .from("listings")
+        .select("user_id")
+        .eq("kind", "want")
+        .eq("status", "active")
+        .eq("card_id", cardId)
+        .neq("user_id", meId);
+      for (const w of wants ?? []) {
+        await emailUser(w.user_id, {
+          subject: "Publicaron una carta que buscas",
+          heading: `Publicaron "${cardName}"`,
+          lines: [
+            `Alguien publicó un anuncio de "${cardName}", que tienes en tu lista de "busco".`,
+          ],
+          ctaLabel: "Ver el anuncio",
+          ctaPath: `/anuncio/${listingId}`,
+        });
+      }
+    });
+  }
+
   revalidatePath("/coleccion");
   revalidatePath("/panel");
-  return { ok: true, id: data as string };
+  return { ok: true, id: listingId };
 }
 
 // --- Gestión de anuncios propios (desde /panel) --------------------------

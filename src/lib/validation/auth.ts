@@ -64,6 +64,7 @@ export const profileSchema = z.object({
   city: z.enum(CITIES, { error: "Elige una ciudad." }).default("Barranquilla"),
   whatsapp: z.union([whatsappSchema, z.literal("")]).optional(),
   show_whatsapp: z.boolean().default(true),
+  email_notifications: z.boolean().default(true),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

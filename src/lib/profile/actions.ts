@@ -23,6 +23,7 @@ export async function updateProfile(
     city: formData.get("city") ?? "Barranquilla",
     whatsapp: formData.get("whatsapp") ?? "",
     show_whatsapp: formData.get("show_whatsapp") === "on",
+    email_notifications: formData.get("email_notifications") === "on",
   });
 
   if (!parsed.success) {
@@ -35,7 +36,8 @@ export async function updateProfile(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/perfil");
 
-  const { display_name, bio, city, whatsapp, show_whatsapp } = parsed.data;
+  const { display_name, bio, city, whatsapp, show_whatsapp, email_notifications } =
+    parsed.data;
 
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -45,6 +47,7 @@ export async function updateProfile(
       city,
       whatsapp: whatsapp || null,
       show_whatsapp,
+      email_notifications,
     })
     .eq("id", user.id)
     .select("username")
