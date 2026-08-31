@@ -138,4 +138,17 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   `startDeal`→vendedor, `confirmDeal`/`cancelDeal`→contraparte, `submitReview`→
   reseñado, `createListing`(offer con card_id)→quienes buscan esa carta. Env
   nuevas: `RESEND_API_KEY`, `EMAIL_FROM` (vacías = sin correo, in-app sigue).
-- Fase 4: SEO, PWA, términos + Habeas Data, analítica, lanzamiento.
+- Fase 4 (hecha, salvo el deploy):
+  - slice 1: `robots.ts`, `sitemap.ts` (admin client, revalidate 1h), `icon.tsx`
+    / `apple-icon.tsx` / `opengraph-image.tsx` (+ `/anuncio/[id]/opengraph-image`
+    dinámico) con `next/og`, `manifest.ts` (PWA instalable), `viewport.themeColor`
+    + `appleWebApp` + twitter card en el layout, `canonical`/`openGraph` en el
+    `generateMetadata` de anuncio y perfil.
+  - slice 2: `/terminos` y `/privacidad` (Habeas Data, Ley 1581), footer
+    (`site-footer.tsx`), consentimiento obligatorio en el onboarding +
+    `profiles.tos_accepted_at` (migración `20260907000000`). Constantes
+    `CONTACT_EMAIL` (placeholder, cambiar), `LEGAL_UPDATED`, `MIN_AGE` en site.ts.
+  - slice 3: `@vercel/analytics` (`<Analytics/>` en el layout; sin cookies).
+  - Falta (acción del usuario): deploy a Vercel + Supabase Cloud, poner env vars
+    reales (`NEXT_PUBLIC_SITE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `CONTACT_EMAIL`),
+    dominio verificado en Resend, correr migraciones pendientes.
