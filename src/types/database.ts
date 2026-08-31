@@ -327,6 +327,30 @@ export interface Database {
           },
         ];
       };
+
+      reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          target_type: "listing" | "user";
+          target_listing_id: string | null;
+          target_user_id: string | null;
+          reason: string;
+          detail: string | null;
+          status: "open" | "reviewed" | "dismissed";
+          created_at: string;
+        };
+        Insert: {
+          reporter_id: string;
+          target_type: "listing" | "user";
+          target_listing_id?: string | null;
+          target_user_id?: string | null;
+          reason: string;
+          detail?: string | null;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
 
     Views: Record<string, never>;
@@ -382,3 +406,4 @@ export type ListingPhoto =
   Database["public"]["Tables"]["listing_photos"]["Row"];
 export type Deal = Database["public"]["Tables"]["deals"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
+export type Report = Database["public"]["Tables"]["reports"]["Row"];

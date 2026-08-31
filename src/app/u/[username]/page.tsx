@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { Stars } from "@/components/reviews/stars";
+import { ReportDialog } from "@/components/reports/report-dialog";
 
 type PublicCollection = {
   id: string;
@@ -158,6 +159,9 @@ export default async function PublicProfilePage({
                 Inicia sesión para contactar
               </Link>
             </Button>
+          ) : null}
+          {viewer && !isSelf ? (
+            <ReportDialog targetType="user" targetId={profile.id} />
           ) : null}
         </div>
       </header>

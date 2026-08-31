@@ -111,6 +111,12 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   Migración `20260903000000_reviews.sql`. UI: `ReviewForm` en `DealRow`
   (`/panel/tratos`), sección "Reseñas" + estrellas en `/u/[username]`.
   Lógica en `src/lib/reviews/{actions,query}.ts`, componente `reviews/stars.tsx`.
-- Fase 2 pendiente: reportes de anuncios/usuarios.
+- Fase 2 slice 3 (hecha — cierra Fase 2): `reports` — usuario con sesión reporta
+  un anuncio o un perfil (motivo enum + detalle). RLS: crea el propio, ve sólo
+  los propios; sin update/delete (moderación manual desde Supabase). Constraint
+  de forma (`target_type` ↔ columna) + índice único parcial (un reporte abierto
+  por reportante/objetivo). Migración `20260904000000_reports.sql`. UI:
+  `ReportDialog` en `/anuncio/[id]` y `/u/[username]`. `src/lib/reports/actions.ts`
+  + `src/lib/reports.ts` (motivos).
 - Fase 3: matching busco↔vendo, notificaciones (in-app + email con Resend).
 - Fase 4: SEO, PWA, términos + Habeas Data, analítica, lanzamiento.

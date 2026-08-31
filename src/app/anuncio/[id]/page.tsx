@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardThumb } from "@/components/cards/card-thumb";
 import { StartDeal } from "@/components/deals/start-deal";
+import { ReportDialog } from "@/components/reports/report-dialog";
 import type { Listing } from "@/types/database";
 
 async function loadListing(id: string) {
@@ -250,7 +251,16 @@ export default async function AnuncioPage({
           </div>
 
           {viewer && !isOwner ? (
-            <StartDeal listingId={listing.id} deal={myDeal} />
+            <>
+              <StartDeal listingId={listing.id} deal={myDeal} />
+              <div className="-ml-2">
+                <ReportDialog
+                  targetType="listing"
+                  targetId={listing.id}
+                  label="Reportar anuncio"
+                />
+              </div>
+            </>
           ) : null}
         </div>
       </div>
