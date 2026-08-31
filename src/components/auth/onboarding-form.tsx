@@ -93,6 +93,37 @@ export function OnboardingForm({ defaults }: Props) {
         Mostrar mi WhatsApp a usuarios con sesión iniciada
       </label>
 
+      <div className="flex flex-col gap-1">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="accept_terms"
+            required
+            className="mt-0.5 size-4 rounded border-input"
+          />
+          <span>
+            Acepto los{" "}
+            <a
+              href="/terminos"
+              target="_blank"
+              className="underline underline-offset-2"
+            >
+              Términos
+            </a>{" "}
+            y la{" "}
+            <a
+              href="/privacidad"
+              target="_blank"
+              className="underline underline-offset-2"
+            >
+              Política de Tratamiento de Datos
+            </a>
+            .
+          </span>
+        </label>
+        <FieldError messages={state.fieldErrors?.accept_terms} />
+      </div>
+
       {state.error ? (
         <p className="text-sm text-destructive" role="alert">
           {state.error}

@@ -28,8 +28,19 @@ export default async function RegistroPage() {
           Gratis. Sólo necesitas un correo para empezar.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         <AuthForm mode="register" />
+        <p className="text-xs text-muted-foreground">
+          Al crear una cuenta y completar tu perfil aceptas los{" "}
+          <a href="/terminos" className="underline underline-offset-2">
+            Términos
+          </a>{" "}
+          y la{" "}
+          <a href="/privacidad" className="underline underline-offset-2">
+            Política de Tratamiento de Datos
+          </a>
+          .
+        </p>
       </CardContent>
     </Card>
   );

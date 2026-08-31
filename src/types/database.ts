@@ -36,6 +36,7 @@ export interface Database {
           rating_count: number;
           onboarding_completed: boolean;
           email_notifications: boolean;
+          tos_accepted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -60,6 +61,7 @@ export interface Database {
           city?: string;
           onboarding_completed?: boolean;
           email_notifications?: boolean;
+          tos_accepted_at?: string | null;
         };
         Relationships: [];
       };

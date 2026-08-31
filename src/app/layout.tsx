@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -65,9 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           <SiteHeader />
           <main className="flex-1">{children}</main>
-          <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-            {SITE_NAME} · Hecho por y para la comunidad de Barranquilla
-          </footer>
+          <SiteFooter />
           <Toaster />
         </ThemeProvider>
       </body>

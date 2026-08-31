@@ -122,6 +122,16 @@ export async function completeOnboarding(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  if (formData.get("accept_terms") !== "on") {
+    return {
+      fieldErrors: {
+        accept_terms: [
+          "Debes aceptar los Términos y la Política de Tratamiento de Datos.",
+        ],
+      },
+    };
+  }
+
   const parsed = onboardingSchema.safeParse({
     username: formData.get("username"),
     display_name: formData.get("display_name"),
@@ -169,6 +179,12 @@ export async function completeOnboarding(
       }`,
     };
   }
+
+  // Sella la aceptación de Términos + Política de Datos.
+  await supabase
+    .from("profiles")
+    .update({ tos_accepted_at: new Date().toISOString() })
+    .eq("id", user.id);
 
   redirect("/");
 }

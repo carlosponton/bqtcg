@@ -9,6 +9,18 @@ export const SITE_DESCRIPTION =
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+/**
+ * Correo del responsable del tratamiento de datos (para ejercer derechos
+ * Habeas Data y contacto legal). TODO: reemplazar por el correo real.
+ */
+export const CONTACT_EMAIL = "contacto@tcgbarranquilla.co";
+
+/** Fecha de la última actualización de los documentos legales. */
+export const LEGAL_UPDATED = "31 de agosto de 2026";
+
+/** Edad mínima para usar la plataforma sin acompañamiento de un adulto. */
+export const MIN_AGE = 14;
+
 /** Enlaces de navegación principales del header. */
 export const NAV_LINKS = [
   { href: "/explorar", label: "Explorar" },
