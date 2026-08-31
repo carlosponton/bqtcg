@@ -8,6 +8,7 @@ import type { DealListItem } from "@/lib/deals/query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardThumb } from "@/components/cards/card-thumb";
+import { ReviewForm } from "@/components/reviews/review-form";
 
 export function DealRow({ deal }: { deal: DealListItem }) {
   const [pending, start] = useTransition();
@@ -103,9 +104,13 @@ export function DealRow({ deal }: { deal: DealListItem }) {
             </Button>
           </div>
         ) : deal.status === "confirmed" ? (
-          <p className="text-xs text-muted-foreground">
-            Trato confirmado por ambas partes. Las reseñas llegan pronto.
-          </p>
+          <div className="mt-1">
+            <ReviewForm
+              dealId={deal.id}
+              counterpartyName={other}
+              existing={deal.myReview}
+            />
+          </div>
         ) : null}
 
         {error ? <p className="text-xs text-destructive">{error}</p> : null}

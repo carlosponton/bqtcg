@@ -295,6 +295,38 @@ export interface Database {
           },
         ];
       };
+
+      reviews: {
+        Row: {
+          id: string;
+          deal_id: string;
+          reviewer_id: string;
+          reviewee_id: string;
+          rating: number;
+          comment: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          deal_id: string;
+          reviewer_id: string;
+          reviewee_id: string;
+          rating: number;
+          comment?: string | null;
+        };
+        Update: {
+          rating?: number;
+          comment?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reviews_deal_id_fkey";
+            columns: ["deal_id"];
+            referencedRelation: "deals";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
 
     Views: Record<string, never>;
@@ -349,3 +381,4 @@ export type Listing = Database["public"]["Tables"]["listings"]["Row"];
 export type ListingPhoto =
   Database["public"]["Tables"]["listing_photos"]["Row"];
 export type Deal = Database["public"]["Tables"]["deals"]["Row"];
+export type Review = Database["public"]["Tables"]["reviews"]["Row"];

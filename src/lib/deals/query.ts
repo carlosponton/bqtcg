@@ -14,6 +14,7 @@ export type DealListItem = {
   confirmedAt: string | null;
   listing: { id: string; card_name: string; image: string | null } | null;
   counterparty: { username: string | null; display_name: string | null } | null;
+  myReview: { rating: number; comment: string | null } | null;
 };
 
 type DealRow = {
@@ -55,6 +56,22 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
 
   const rows = (data ?? []) as unknown as DealRow[];
 
+  // Mis reseñas ya dejadas para estos tratos (para prellenar / mostrar).
+  const reviews = new Map<string, { rating: number; comment: string | null }>();
+  const confirmedIds = rows
+    .filter((r) => r.status === "confirmed")
+    .map((r) => r.id);
+  if (confirmedIds.length > 0) {
+    const { data: myReviews } = await supabase
+      .from("reviews")
+      .select("deal_id, rating, comment")
+      .eq("reviewer_id", userId)
+      .in("deal_id", confirmedIds);
+    for (const rv of myReviews ?? []) {
+      reviews.set(rv.deal_id, { rating: rv.rating, comment: rv.comment });
+    }
+  }
+
   const otherIds = [
     ...new Set(
       rows.map((r) => (r.seller_id === userId ? r.buyer_id : r.seller_id)),
@@ -95,6 +112,7 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
           }
         : null,
       counterparty: people.get(otherId) ?? null,
+      myReview: reviews.get(r.id) ?? null,
     };
   });
 }

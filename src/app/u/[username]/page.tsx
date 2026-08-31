@@ -8,10 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME } from "@/lib/site";
 import { whatsappLink } from "@/lib/listings";
 import { listUserListings } from "@/lib/listings/query";
+import { getReviewsForUser } from "@/lib/reviews/query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
+import { Stars } from "@/components/reviews/stars";
 
 type PublicCollection = {
   id: string;
@@ -37,9 +39,10 @@ async function loadProfile(username: string) {
 
   if (!profile || !profile.onboarding_completed) return null;
 
-  const [listings, collectionsRes] = await Promise.all([
+  const [listings, collectionsRes, reviews] = await Promise.all([
     listUserListings(profile.id),
     supabase.rpc("get_public_collections", { p_username: username }),
+    getReviewsForUser(profile.id),
   ]);
 
   return {
@@ -47,6 +50,7 @@ async function loadProfile(username: string) {
     profile,
     listings,
     collections: (collectionsRes.data ?? []) as unknown as PublicCollection[],
+    reviews,
   };
 }
 
@@ -72,7 +76,7 @@ export default async function PublicProfilePage({
   const data = await loadProfile(username);
   if (!data) notFound();
 
-  const { viewer, profile, listings, collections } = data;
+  const { viewer, profile, listings, collections, reviews } = data;
   const name = profile.display_name || profile.username || "Jugador";
   const initials = name.slice(0, 2).toUpperCase();
   const isSelf = viewer?.id === profile.id;
@@ -108,12 +112,19 @@ export default async function PublicProfilePage({
                 @{profile.username}
               </p>
             ) : null}
-            <p className="mt-1 text-sm text-muted-foreground">
-              {profile.city}
-              {" · "}
-              {profile.rating_count
-                ? `★ ${profile.rating_avg.toFixed(1)} (${profile.rating_count})`
-                : "Sin reseñas todavía"}
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+              <span>{profile.city}</span>
+              <span>·</span>
+              {profile.rating_count ? (
+                <>
+                  <Stars rating={profile.rating_avg} />
+                  <span>
+                    {profile.rating_avg.toFixed(1)} ({profile.rating_count})
+                  </span>
+                </>
+              ) : (
+                <span>Sin reseñas todavía</span>
+              )}
             </p>
             {profile.bio ? (
               <p className="mt-2 max-w-prose text-sm text-pretty">
@@ -174,6 +185,55 @@ export default async function PublicProfilePage({
               </li>
             ))}
           </Grid>
+        </Section>
+      ) : null}
+
+      {reviews.length > 0 ? (
+        <Section title={`Reseñas (${reviews.length})`}>
+          <ul className="flex flex-col gap-3">
+            {reviews.map((r) => {
+              const who =
+                r.reviewer?.display_name ||
+                (r.reviewer?.username ? `@${r.reviewer.username}` : "Alguien");
+              return (
+                <li key={r.id} className="rounded-xl border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Avatar size="sm">
+                        {r.reviewer?.avatar_url ? (
+                          <AvatarImage src={r.reviewer.avatar_url} alt={who} />
+                        ) : null}
+                        <AvatarFallback>
+                          {who.replace("@", "").slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {r.reviewer?.username ? (
+                        <Link
+                          href={`/u/${r.reviewer.username}`}
+                          className="text-sm font-medium underline-offset-2 hover:underline"
+                        >
+                          {who}
+                        </Link>
+                      ) : (
+                        <span className="text-sm font-medium">{who}</span>
+                      )}
+                    </div>
+                    <Stars rating={r.rating} />
+                  </div>
+                  {r.comment ? (
+                    <p className="mt-2 text-sm text-pretty">{r.comment}</p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {new Date(r.createdAt).toLocaleDateString("es-CO", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         </Section>
       ) : null}
 

@@ -103,7 +103,14 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   por las 3 RPCs SECURITY DEFINER) — migración `20260902000000_deals.sql`, no
   toca `listings`. UI: `StartDeal` en `/anuncio/[id]`, `/panel/tratos` con
   `DealRow`. Lógica en `src/lib/deals/{actions,query}.ts`.
-- Fase 2 pendiente: `reviews` + reputación (tras `deal` confirmado; trigger que
-  recalcula `profiles.rating_avg`/`rating_count`), reportes de anuncios/usuarios.
+- Fase 2 slice 2 (hecha): `reviews` — cada parte de un `deal` `confirmed` deja
+  una reseña (1–5 + comentario) de la otra. INSERT/UPDATE/DELETE por RLS (el
+  `with check` valida que el trato esté confirmado y que `reviewee_id` sea la
+  contraparte); SELECT público. Trigger `reviews_rating_sync` recalcula
+  `profiles.rating_avg`/`rating_count` (SECURITY DEFINER, columnas con grant).
+  Migración `20260903000000_reviews.sql`. UI: `ReviewForm` en `DealRow`
+  (`/panel/tratos`), sección "Reseñas" + estrellas en `/u/[username]`.
+  Lógica en `src/lib/reviews/{actions,query}.ts`, componente `reviews/stars.tsx`.
+- Fase 2 pendiente: reportes de anuncios/usuarios.
 - Fase 3: matching busco↔vendo, notificaciones (in-app + email con Resend).
 - Fase 4: SEO, PWA, términos + Habeas Data, analítica, lanzamiento.
