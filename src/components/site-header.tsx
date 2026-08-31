@@ -2,8 +2,13 @@ import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { NAV_LINKS, SITE_NAME } from "@/lib/site";
+import {
+  getNotifications,
+  getUnreadCount,
+} from "@/lib/notifications/query";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/mobile-nav";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserMenu } from "@/components/user-menu";
 
 export async function SiteHeader() {
@@ -17,14 +22,22 @@ export async function SiteHeader() {
     display_name: string | null;
     avatar_url: string | null;
   } | null = null;
+  let notifications: Awaited<ReturnType<typeof getNotifications>> = [];
+  let unread = 0;
 
   if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("username, display_name, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [{ data }, notifs, count] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("username, display_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle(),
+      getNotifications(user.id, 12),
+      getUnreadCount(user.id),
+    ]);
     profile = data;
+    notifications = notifs;
+    unread = count;
   }
 
   return (
@@ -48,13 +61,16 @@ export async function SiteHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {user ? (
-            <UserMenu
-              username={profile?.username ?? null}
-              displayName={profile?.display_name ?? null}
-              avatarUrl={profile?.avatar_url ?? null}
-            />
+            <>
+              <NotificationBell items={notifications} unread={unread} />
+              <UserMenu
+                username={profile?.username ?? null}
+                displayName={profile?.display_name ?? null}
+                avatarUrl={profile?.avatar_url ?? null}
+              />
+            </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm">

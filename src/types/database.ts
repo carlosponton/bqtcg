@@ -351,6 +351,25 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body: string | null;
+          link: string | null;
+          actor_id: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: Record<string, never>; // se crean sólo server-side (triggers / rpc)
+        Update: {
+          read_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
 
     Views: Record<string, never>;
@@ -407,3 +426,5 @@ export type ListingPhoto =
 export type Deal = Database["public"]["Tables"]["deals"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
 export type Report = Database["public"]["Tables"]["reports"]["Row"];
+export type Notification =
+  Database["public"]["Tables"]["notifications"]["Row"];

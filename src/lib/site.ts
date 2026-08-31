@@ -33,4 +33,5 @@ export const PROTECTED_PREFIXES = [
   "/perfil",
   "/publicar",
   "/coleccion",
+  "/notificaciones",
 ] as const;
