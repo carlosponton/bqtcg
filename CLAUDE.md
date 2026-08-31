@@ -54,11 +54,13 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   `/anuncio/[id]`. Etiqueta de UI vía `listingModeLabel()` ("Venta o cambio", …).
 - **Fotos**: bucket `listing-photos` (público). Se comprimen a webp en el
   navegador (`browser-image-compression`) y se suben por el route handler
-  **`/api/listings/photos`** (`POST` multipart → `{path}`, `DELETE` `{paths}`),
-  que usa el cliente de **servidor**: la RLS de Storage exige sesión y el cliente
-  del navegador a veces no la tiene hidratada (daba `403 new row violates RLS`).
-  Path `{uid}/{grupo}/{i}.webp`; el path se pasa a `create_listing`. Helper
-  `src/lib/listings/photo-upload.ts` (`uploadListingPhotos` / `removeStoragePhotos`).
+  **`/api/listings/photos`** (`POST` multipart → `{path}`, `DELETE` `{paths}`).
+  El handler autentica al usuario con la cookie de sesión y hace la subida real
+  con la **secret key** (`createAdminClient`, ignora RLS) forzando el prefijo
+  `{uid}/` en el path — la subida directa navegador → Storage daba
+  `403 new row violates row-level security policy`. El path (`{uid}/{grupo}/{i}.webp`)
+  se pasa a `create_listing`. Helper `src/lib/listings/photo-upload.ts`
+  (`uploadListingPhotos` / `removeStoragePhotos`).
 - **Catálogo TCGdex** (`src/lib/tcgdex.ts`, `server-only`): usa el **SDK oficial
   `@tcgdex/sdk`** (`new TCGdex('es')` + `setEndpoint(...)`, singleton).
   `searchCards` baja la lista completa de cartas una vez (cache 6 h en memoria) y

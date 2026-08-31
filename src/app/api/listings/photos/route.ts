@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "listing-photos";
 const ALLOWED_TYPES = new Set(["image/webp", "image/jpeg", "image/png"]);
@@ -10,10 +11,11 @@ const GROUP_RE = /^[a-zA-Z0-9-]{1,64}$/;
 /**
  * Subida de fotos de anuncios desde el navegador.
  *
- * Va por el servidor a propósito: la RLS de Storage exige sesión de usuario y el
- * cliente del navegador no siempre la tiene hidratada al subir (daba 403
- * "new row violates row-level security policy"). Aquí la cookie de sesión sí se
- * lee. El path sigue siendo `{uid}/{grupo}/{i}.ext` para respetar la política.
+ * Va por el servidor a propósito: la subida directa navegador → Storage daba
+ * 403 "new row violates row-level security policy". Aquí se autentica al usuario
+ * con la cookie de sesión y la subida real la hace el cliente con secret key
+ * (ignora RLS); la seguridad la da este handler, que fuerza el prefijo
+ * `{uid}/` en el path.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -62,7 +64,8 @@ export async function POST(request: Request) {
 
   const path = `${user.id}/${group}/${index}.${ext}`;
 
-  const { error } = await supabase.storage
+  const admin = createAdminClient();
+  const { error } = await admin.storage
     .from(BUCKET)
     .upload(path, file, { contentType: type, upsert: true });
 
@@ -101,7 +104,7 @@ export async function DELETE(request: Request) {
     : [];
 
   if (paths.length > 0) {
-    await supabase.storage.from(BUCKET).remove(paths);
+    await createAdminClient().storage.from(BUCKET).remove(paths);
   }
   return NextResponse.json({ ok: true });
 }
