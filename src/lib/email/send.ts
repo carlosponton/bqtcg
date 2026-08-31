@@ -2,7 +2,7 @@ import "server-only";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM =
-  process.env.EMAIL_FROM || "TCG Barranquilla <onboarding@resend.dev>";
+  process.env.EMAIL_FROM || "El Cambista TCG <onboarding@resend.dev>";
 
 export type SendResult = {
   sent: boolean;
