@@ -58,10 +58,17 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
 - **Catálogo TCGdex** (`src/lib/tcgdex.ts`, `server-only`): usa el **SDK oficial
   `@tcgdex/sdk`** (`new TCGdex('es')` + `setEndpoint(...)`, singleton).
   `searchCards` baja la lista completa de cartas una vez (cache 6 h en memoria) y
-  filtra en el servidor. `/api/cards/search` es la ruta.
+  filtra en el servidor. `/api/cards/search` es la ruta. Se **excluyen** las
+  series de `EXCLUDED_SERIE_IDS` (`tcgp` = Pokémon TCG Pocket): `getExcludedSetIds`
+  baja los sets de esas series (cache 6 h; reserva por regex `POCKET_ID_RE`) y
+  `getAllCards` los filtra por prefijo de `card.id`. El emparejamiento usa
+  `normalize()` (minúsculas, sin acentos, signos → espacio) en ambos lados, así
+  "Mega Starmie ex" encuentra "Mega-Starmie ex".
   `src/lib/catalog.ts#resolveCard` cachea la carta + su set con la **secret key**
   (`src/lib/supabase/admin.ts`) al elegirla; si TCGdex falla, degrada a texto
-  libre. Tablas `sets`/`cards` = lectura pública, escritura sólo service key.
+  libre. En modo "a mano" el `CardPicker` (con `userId`) deja subir una imagen
+  opcional que va a `image_url` vía `resolveCard` (`safeImageUrl` exige https).
+  Tablas `sets`/`cards` = lectura pública, escritura sólo service key.
 - **`api.tcgdex.net` (nodo principal) no es alcanzable desde la red del usuario.**
   Se usa el mirror **`api.eu1.tcgdex.net/v2`** — es el default en el código.
   Override con `TCGDEX_ENDPOINT` en `.env.local` (p. ej. volver a

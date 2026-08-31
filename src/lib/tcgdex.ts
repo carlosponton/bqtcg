@@ -79,18 +79,87 @@ export function cardImages(base: string | null | undefined) {
 // --- Catálogo completo en memoria -----------------------------------------
 
 const LIST_TTL_MS = 1000 * 60 * 60 * 6; // 6 h
+
+/**
+ * Series que NO van en el marketplace. `tcgp` = Pokémon TCG Pocket: cartas de
+ * un juego digital aparte, que no existen en físico y ensucian la búsqueda.
+ */
+const EXCLUDED_SERIE_IDS = ["tcgp"];
+
+/**
+ * Prefijos de los sets de TCG Pocket (A1, A2a, B2, P-A…). Sólo se usa como
+ * reserva si no se pudieron cargar las series desde TCGdex.
+ */
+const POCKET_ID_RE = /^(a\d|b\d|p-a)/i;
+
+type TcgSerieFull = { id: string; name: string; sets?: { id: string }[] };
+
 let listCache: { at: number; cards: TcgApiCardResume[] } | null = null;
 let listInflight: Promise<TcgApiCardResume[]> | null = null;
+
+let excludedSetsCache: { at: number; ids: Set<string> } | null = null;
+let excludedSetsInflight: Promise<Set<string>> | null = null;
+
+/** Normaliza para comparar nombres: minúsculas, sin acentos, signos → espacio. */
+function normalize(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** `swsh3-136` → `swsh3`; `P-A-001` → `P-A`. */
+function setIdOf(cardId: string): string {
+  const i = cardId.lastIndexOf("-");
+  return i === -1 ? cardId : cardId.slice(0, i);
+}
+
+async function getExcludedSetIds(): Promise<Set<string>> {
+  if (excludedSetsCache && Date.now() - excludedSetsCache.at < LIST_TTL_MS) {
+    return excludedSetsCache.ids;
+  }
+  if (!excludedSetsInflight) {
+    excludedSetsInflight = Promise.all(
+      EXCLUDED_SERIE_IDS.map(async (id) => {
+        try {
+          const serie = (await tcgdex.fetch("series", id)) as
+            | TcgSerieFull
+            | undefined;
+          return (serie?.sets ?? []).map((s) => s.id);
+        } catch {
+          return [] as string[];
+        }
+      }),
+    )
+      .then((lists) => {
+        const ids = new Set(lists.flat());
+        if (ids.size > 0) excludedSetsCache = { at: Date.now(), ids };
+        return ids;
+      })
+      .finally(() => {
+        excludedSetsInflight = null;
+      });
+  }
+  return excludedSetsInflight;
+}
+
+function isExcludedCard(cardId: string, excludedSets: Set<string>): boolean {
+  if (excludedSets.size > 0) return excludedSets.has(setIdOf(cardId));
+  return POCKET_ID_RE.test(cardId); // no cargaron las series: usa el patrón
+}
 
 async function getAllCards(): Promise<TcgApiCardResume[]> {
   if (listCache && Date.now() - listCache.at < LIST_TTL_MS) {
     return listCache.cards;
   }
   if (!listInflight) {
-    listInflight = tcgdex
-      .fetch("cards")
-      .then((cards) => {
-        const list = cards ?? [];
+    listInflight = Promise.all([tcgdex.fetch("cards"), getExcludedSetIds()])
+      .then(([cards, excludedSets]) => {
+        const list = (cards ?? []).filter(
+          (card) => !isExcludedCard(card.id, excludedSets),
+        );
         listCache = { at: Date.now(), cards: list };
         return list;
       })
@@ -107,14 +176,14 @@ export async function searchCards(
   query: string,
   limit = 20,
 ): Promise<TcgCardBrief[]> {
-  const q = query.trim().toLowerCase();
+  const q = normalize(query);
   if (q.length < 2) return [];
 
   const all = await getAllCards();
   const matches: { card: TcgApiCardResume; score: number }[] = [];
 
   for (const card of all) {
-    const name = card.name.toLowerCase();
+    const name = normalize(card.name);
     if (!name.includes(q)) continue;
     let score = 3;
     if (name === q) score = 0;

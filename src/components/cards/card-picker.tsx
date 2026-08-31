@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronsUpDown, Search, ZoomIn } from "lucide-react";
+import { ChevronsUpDown, ImagePlus, Search, X, ZoomIn } from "lucide-react";
 
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { listingPhotoUrl } from "@/lib/listings";
+import { uploadListingPhotos } from "@/lib/listings/photo-upload";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -39,6 +41,8 @@ export type CardPickerProps = {
   defaultCustomName?: string | null;
   defaultCardName?: string | null;
   defaultImage?: string | null;
+  /** Con sesión: habilita subir una imagen al escribir la carta a mano. */
+  userId?: string;
   /** Bloquea el cambio de carta (ej. al publicar desde la colección). */
   locked?: boolean;
 };
@@ -56,6 +60,7 @@ export function CardPicker({
   defaultCustomName,
   defaultCardName,
   defaultImage,
+  userId,
   locked = false,
 }: CardPickerProps) {
   const [mode, setMode] = useState<"catalog" | "custom">(
@@ -67,6 +72,11 @@ export function CardPicker({
       : null,
   );
   const [customName, setCustomName] = useState(defaultCustomName ?? "");
+  const [customImage, setCustomImage] = useState<string | null>(
+    defaultCustomName ? (defaultImage ?? null) : null,
+  );
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
@@ -114,7 +124,8 @@ export function CardPicker({
   const customCardName = mode === "custom" ? customName.trim() : "";
   const cardName =
     mode === "catalog" ? (selected?.name ?? "") : customName.trim();
-  const image = mode === "catalog" ? (selected?.image ?? "") : "";
+  const image =
+    mode === "catalog" ? (selected?.image ?? "") : (customImage ?? "");
 
   function choose(r: Result) {
     setSelected(r);
@@ -292,13 +303,79 @@ export function CardPicker({
           </PopoverContent>
         </Popover>
       ) : (
-        <Input
-          value={customName}
-          onChange={(e) => setCustomName(e.target.value)}
-          placeholder="Nombre de la carta (ej. Pikachu promo error)"
-          disabled={locked}
-          maxLength={120}
-        />
+        <div className="flex flex-col gap-2">
+          <Input
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            placeholder="Nombre de la carta (ej. Pikachu promo error)"
+            disabled={locked}
+            maxLength={120}
+          />
+          {userId && !locked ? (
+            <>
+              <div className="flex items-start gap-3">
+                {customImage ? (
+                  <div className="relative shrink-0">
+                    <CardThumb
+                      src={customImage}
+                      alt="Imagen de la carta"
+                      className="w-20"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Quitar imagen"
+                      onClick={() => setCustomImage(null)}
+                      className="absolute -top-2 -right-2 grid size-6 place-items-center rounded-full bg-background text-muted-foreground ring-1 ring-border hover:text-foreground"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                ) : null}
+                <label className="flex cursor-pointer items-center gap-1.5 self-center rounded-md border px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted/50">
+                  <ImagePlus className="size-4" />
+                  {uploadingImage
+                    ? "Subiendo…"
+                    : customImage
+                      ? "Cambiar imagen"
+                      : "Añadir una imagen (opcional)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingImage}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file) return;
+                      setImageError(null);
+                      setUploadingImage(true);
+                      try {
+                        const [path] = await uploadListingPhotos(
+                          [file],
+                          userId,
+                        );
+                        setCustomImage(listingPhotoUrl(path));
+                      } catch {
+                        setImageError(
+                          "No se pudo subir la imagen. Intenta de nuevo.",
+                        );
+                      } finally {
+                        setUploadingImage(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              {imageError ? (
+                <p className="text-xs text-destructive">{imageError}</p>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                Si la carta no está en el catálogo, sube una foto para que el
+                anuncio no quede sin imagen.
+              </p>
+            </>
+          ) : null}
+        </div>
       )}
 
       {!locked ? (

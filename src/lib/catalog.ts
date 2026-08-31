@@ -11,6 +11,12 @@ export type ResolvedCard = {
   image_url: string | null;
 };
 
+/** Sólo admite URLs https (catálogo TCGdex o Storage de Supabase). */
+function safeImageUrl(value: string | null | undefined): string | null {
+  const v = value?.trim();
+  return v && /^https:\/\//i.test(v) ? v : null;
+}
+
 /**
  * A partir de lo que envió el formulario (`card_id` del catálogo o
  * `custom_card_name` a mano), devuelve los campos "snapshot" que guardamos en
@@ -35,7 +41,7 @@ export async function resolveCard(input: {
       custom_card_name: name,
       card_name: name,
       set_name: null,
-      image_url: null,
+      image_url: safeImageUrl(input.imageHint),
     };
   }
 
@@ -85,7 +91,7 @@ export async function resolveCard(input: {
       custom_card_name: name,
       card_name: name,
       set_name: null,
-      image_url: input.imageHint?.trim() || null,
+      image_url: safeImageUrl(input.imageHint),
     };
   }
 }

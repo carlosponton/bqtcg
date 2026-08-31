@@ -184,6 +184,7 @@ export function PublishForm({
       <div className="flex flex-col gap-1.5">
         <Label>Carta</Label>
         <CardPicker
+          userId={userId}
           defaultCardId={fromCollectionItem?.card_id ?? undefined}
           defaultCustomName={fromCollectionItem?.custom_card_name ?? undefined}
           defaultCardName={fromCollectionItem?.card_name ?? undefined}

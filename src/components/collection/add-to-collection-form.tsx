@@ -19,7 +19,13 @@ import { CardPicker } from "@/components/cards/card-picker";
 
 const INITIAL: FormState = {};
 
-export function AddToCollectionForm({ collectionId }: { collectionId: string }) {
+export function AddToCollectionForm({
+  collectionId,
+  userId,
+}: {
+  collectionId: string;
+  userId: string;
+}) {
   const [state, formAction, isPending] = useActionState(
     addToCollection,
     INITIAL,
@@ -31,7 +37,7 @@ export function AddToCollectionForm({ collectionId }: { collectionId: string }) 
 
       <div className="flex flex-col gap-1.5">
         <Label>Carta</Label>
-        <CardPicker />
+        <CardPicker userId={userId} />
         <FieldError messages={state.fieldErrors?.card_name} />
       </div>
 

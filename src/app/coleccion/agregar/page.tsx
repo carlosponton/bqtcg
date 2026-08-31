@@ -41,11 +41,11 @@ export default async function AgregarCartaPage({
           <CardTitle>Agregar carta</CardTitle>
           <CardDescription>
             A la colección <span className="font-medium">{collection.name}</span>.
-            Sin precio ni foto.
+            Sin precio.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AddToCollectionForm collectionId={collection.id} />
+          <AddToCollectionForm collectionId={collection.id} userId={user.id} />
         </CardContent>
       </Card>
     </div>
