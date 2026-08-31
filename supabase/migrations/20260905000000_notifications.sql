@@ -4,6 +4,11 @@
 -- desde el servidor: triggers en `deals` y `reviews`, y dentro de la RPC
 -- `create_listing` (matching). El usuario sólo lee las suyas y marca `read_at`.
 -- Migración hacia adelante. Idempotente.
+--
+-- NOTA: cada función usa una etiqueta dollar-quote CON NOMBRE
+-- (as $deals_notify$ ... $deals_notify$) en vez de la genérica, porque el editor
+-- SQL del dashboard de Supabase parte mal los scripts con varias funciones si
+-- todas comparten el mismo delimitador.
 
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
@@ -53,7 +58,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $deals_notify$
 declare
   v_card text;
 begin
@@ -94,9 +99,10 @@ begin
   end if;
   return new;
 end;
-$$;
+$deals_notify$;
 
-create or replace trigger deals_notify_trg
+drop trigger if exists deals_notify_trg on public.deals;
+create trigger deals_notify_trg
   after insert or update on public.deals
   for each row execute function public.deals_notify();
 
@@ -108,7 +114,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $reviews_notify$
 declare
   v_username text;
 begin
@@ -125,9 +131,10 @@ begin
   );
   return new;
 end;
-$$;
+$reviews_notify$;
 
-create or replace trigger reviews_notify_trg
+drop trigger if exists reviews_notify_trg on public.reviews;
+create trigger reviews_notify_trg
   after insert on public.reviews
   for each row execute function public.reviews_notify();
 
@@ -140,7 +147,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $create_listing$
 declare
   v_uid uuid := (select auth.uid());
   v_kind text := payload ->> 'kind';
@@ -253,6 +260,6 @@ begin
 
   return v_id;
 end;
-$$;
+$create_listing$;
 
 grant execute on function public.create_listing(jsonb) to authenticated;
