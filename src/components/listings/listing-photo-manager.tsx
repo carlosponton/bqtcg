@@ -56,9 +56,13 @@ export function ListingPhotoManager({
       if (files.length > 0) {
         uploaded = await uploadListingPhotos(files, userId, kept.length);
       }
-    } catch {
+    } catch (e) {
       setPending(false);
-      setError("No se pudieron subir las fotos. Revisa tu conexión.");
+      setError(
+        e instanceof Error && e.message
+          ? `No se pudieron subir las fotos. ${e.message}`
+          : "No se pudieron subir las fotos. Revisa tu conexión.",
+      );
       return;
     }
 

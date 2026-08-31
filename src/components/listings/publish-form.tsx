@@ -91,10 +91,12 @@ export function PublishForm({
     let photoPaths: string[] = [];
     try {
       if (isOffer) photoPaths = await uploadListingPhotos(files, userId);
-    } catch {
+    } catch (e) {
       setPending(false);
       setError(
-        "No se pudieron subir las fotos. Revisa tu conexión e intenta de nuevo.",
+        e instanceof Error && e.message
+          ? `No se pudieron subir las fotos. ${e.message}`
+          : "No se pudieron subir las fotos. Revisa tu conexión e intenta de nuevo.",
       );
       return;
     }
