@@ -224,7 +224,7 @@ begin
     v_i := v_i + 1;
   end loop;
 
-  -- Matching busco <-> vendo (sólo catálogo, por card_id exacto).
+  /* Matching busco / vendo (solo catalogo, por card_id exacto). */
   if v_card_id is not null then
     if not v_is_want then
       insert into public.notifications (user_id, type, title, body, link, actor_id)
