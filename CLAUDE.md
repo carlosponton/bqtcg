@@ -120,13 +120,15 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   + `src/lib/reports.ts` (motivos).
 - Fase 3 slice 1 (hecha): notificaciones in-app + matching busco↔vendo. Tabla
   `notifications` (sólo lectura + `read_at` para el dueño; se crean server-side).
-  Triggers `deals_notify` (trato nuevo / confirmado / cancelado) y `reviews_notify`
-  (reseña nueva). `create_listing` redefinida: al publicar un `offer` con
-  `card_id` notifica a quienes tienen un `want` activo de esa carta (y al revés,
-  un aviso al que publica el `want` si ya hay ofertas). Migración
-  `20260905000000_notifications.sql`. UI: campana en el header (`NotificationBell`)
-  + `/notificaciones` (`NotificationList`). `src/lib/notifications/{actions,query}.ts`,
-  `timeAgo()` en `src/lib/utils.ts`.
+  Triggers: `deals_notify` (trato nuevo/confirmado/cancelado), `reviews_notify`
+  (reseña nueva), `listings_match_notify` (AFTER INSERT on `listings`: un `offer`
+  con `card_id` avisa a quienes tienen un `want` activo de esa carta; un `want`
+  avisa al que publica si ya hay ofertas). NO se toca `create_listing`.
+  Migraciones **`20260905000000`..`000003`** (4 archivos, uno por función — el
+  editor SQL del dashboard de Supabase rompe scripts con varias funciones y con
+  comentarios `--` dentro de cuerpos plpgsql; correrlos en orden). UI: campana en
+  el header (`NotificationBell`) + `/notificaciones` (`NotificationList`).
+  `src/lib/notifications/{actions,query}.ts`, `timeAgo()` en `src/lib/utils.ts`.
 - Fase 3 slice 2 (pendiente): email con Resend (opt-in `profiles.email_notifications`;
   enviar desde las server actions en paralelo al trigger in-app).
 - Fase 4: SEO, PWA, términos + Habeas Data, analítica, lanzamiento.
