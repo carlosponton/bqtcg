@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { NAV_LINKS, SITE_NAME } from "@/lib/site";
+import { NAV_LINKS } from "@/lib/site";
 import {
   getNotifications,
   getUnreadCount,
 } from "@/lib/notifications/query";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 import { MobileNav } from "@/components/mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserMenu } from "@/components/user-menu";
@@ -41,12 +42,12 @@ export async function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-2 sm:gap-6">
           <MobileNav />
-          <Link href="/" className="font-semibold tracking-tight">
-            {SITE_NAME}
+          <Link href="/" aria-label="El Cambista TCG — inicio">
+            <Logo withWordmark />
           </Link>
           <nav className="hidden items-center gap-4 text-sm text-muted-foreground sm:flex">
             {NAV_LINKS.map((link) => (

@@ -16,29 +16,69 @@ export default function OgImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          padding: 80,
-          background: "#111827",
-          color: "#fafaf9",
+          padding: 84,
+          background: "#fff8f0",
+          color: "#2a1f17",
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ fontSize: 34, color: "#f87171", fontWeight: 700 }}>
-          {SITE_NAME.toUpperCase()}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 18,
+            fontSize: 34,
+            fontWeight: 800,
+            letterSpacing: -1,
+          }}
+        >
+          <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
+            <rect
+              x="12.5"
+              y="16"
+              width="21"
+              height="27"
+              rx="3.5"
+              stroke="#2a1f17"
+              strokeWidth="2.6"
+            />
+            <path
+              d="M30 19.5C30 24 24 24 22.6 16.4"
+              stroke="#2a1f17"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+            <ellipse cx="30" cy="9.5" rx="7.2" ry="8.6" fill="#e63946" />
+            <path d="M28.4 17.3h3.2L30 20z" fill="#f4a935" />
+          </svg>
+          {SITE_NAME}
         </div>
         <div
           style={{
-            fontSize: 68,
+            fontSize: 66,
             fontWeight: 800,
             lineHeight: 1.1,
-            marginTop: 24,
-            maxWidth: 900,
+            letterSpacing: -1.5,
+            marginTop: 28,
+            maxWidth: 940,
           }}
         >
-          Compra, vende e intercambia cartas de Pokémon TCG en Barranquilla
+          Cambia, vende y encuentra tus cartas de Pokémon TCG
         </div>
-        <div style={{ fontSize: 30, color: "#9ca3af", marginTop: 28 }}>
-          Marketplace de la comunidad · sin listas de WhatsApp perdidas
+        <div style={{ fontSize: 30, color: "#6f5d48", marginTop: 26 }}>
+          Marketplace de la comunidad en Barranquilla · sin listas de WhatsApp
+          perdidas
         </div>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            bottom: 0,
+            width: "100%",
+            height: 14,
+            background: "#e63946",
+          }}
+        />
       </div>
     ),
     { ...size },

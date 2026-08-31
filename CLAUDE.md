@@ -1,16 +1,29 @@
 @AGENTS.md
 
-# TCG Barranquilla
+# El Cambista TCG
 
 Marketplace comunitario de cartas de Pokémon TCG para Barranquilla (Colombia):
 vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
-(WhatsApp o en persona), no procesa pagos.
+(WhatsApp o en persona), no procesa pagos. Dominio: `elcambistatcg.com`.
+(Antes se llamaba "TCG Barranquilla"; el rebrand vive en `feat/rediseño-el-cambista`.)
 
 ## Stack
 
 - Next.js 16 (App Router, TS) + Tailwind v4 + shadcn/ui (base `radix-nova`)
 - Supabase: Postgres + Auth + Storage + RLS
 - pnpm. Deploy previsto en Vercel + Supabase Cloud.
+
+## Marca y diseño
+
+- Nombre en `SITE_NAME` (`@/lib/site`) — no hardcodear "El Cambista TCG".
+- Paleta "papel cálido" en `src/app/globals.css` (`:root` claro + `.dark` cálido,
+  hex, no OKLCH): fondo `#fff8f0`, `--primary` rojo `#e63946`, token extra
+  `--gold` `#f4a935` (`bg-gold` / `text-gold`). `--radius` 0.5rem.
+- Fuente: `Plus_Jakarta_Sans` (`--font-sans`) vía `next/font/google` en el layout.
+- Logo (isotipo globo + carta): `@/components/brand/logo` (`Logo`, `LogoMark`);
+  ilustración del hero: `@/components/brand/trade-cart` (`TradeCart`, SVG con
+  `var(--...)`, decorativa). `icon.tsx` / `apple-icon.tsx` / `opengraph-image.tsx`
+  usan el isotipo (SVG plano, sin degradado, para Satori).
 
 ## Convenciones
 

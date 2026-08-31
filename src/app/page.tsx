@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LogoMark } from "@/components/brand/logo";
+import { TradeCart } from "@/components/brand/trade-cart";
 import { ListingCard } from "@/components/listings/listing-card";
 
 const MODOS = [
@@ -40,28 +42,36 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4">
-      <section className="flex flex-col items-center gap-6 py-16 text-center sm:py-24">
-        <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          Compra, vende e intercambia cartas de Pokémon TCG en Barranquilla
-        </h1>
-        <p className="max-w-xl text-lg text-muted-foreground text-pretty">
-          Un solo lugar para la comunidad del Caribe: sin listas de WhatsApp
-          perdidas, con perfiles y reputación para negociar con confianza.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
-            <Link href="/registro">Crear cuenta gratis</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="/explorar">Explorar anuncios</Link>
-          </Button>
+      <section className="grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-[1.1fr_1fr]">
+        <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
+          <span className="inline-flex items-center gap-2 rounded-full border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+            <LogoMark className="size-4" />
+            La comunidad de Pokémon TCG en Barranquilla
+          </span>
+          <h1 className="max-w-2xl text-4xl font-extrabold tracking-tight text-balance sm:text-5xl">
+            Cambia, vende y encuentra tus cartas de Pokémon TCG
+          </h1>
+          <p className="max-w-xl text-lg text-muted-foreground text-pretty">
+            {SITE_NAME} reúne a los jugadores del Caribe en un solo lugar: con
+            perfiles, reputación y avisos cuando aparece la carta que buscas. Sin
+            listas de WhatsApp perdidas.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3 lg:justify-start">
+            <Button asChild size="lg">
+              <Link href="/registro">Crear cuenta gratis</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/explorar">Explorar anuncios</Link>
+            </Button>
+          </div>
         </div>
+        <TradeCart className="mx-auto w-full max-w-md lg:max-w-none" />
       </section>
 
       {latest.length > 0 ? (
         <section className="pb-16">
           <div className="mb-4 flex items-baseline justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">
+            <h2 className="border-l-4 border-gold pl-3 text-xl font-bold tracking-tight">
               Últimos anuncios
             </h2>
             <Link
@@ -85,16 +95,18 @@ export default async function HomePage() {
         {MODOS.map((modo) => (
           <Card key={modo.title}>
             <CardHeader>
-              <modo.icon className="size-5 text-muted-foreground" />
-              <CardTitle className="mt-2">{modo.title}</CardTitle>
+              <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <modo.icon className="size-5" />
+              </span>
+              <CardTitle className="mt-3">{modo.title}</CardTitle>
               <CardDescription>{modo.description}</CardDescription>
             </CardHeader>
           </Card>
         ))}
       </section>
 
-      <section className="mb-20 rounded-xl border bg-muted/40 p-6 text-center sm:p-10">
-        <h2 className="text-2xl font-semibold tracking-tight">
+      <section className="mb-20 rounded-xl border bg-secondary/50 p-6 text-center sm:p-10">
+        <h2 className="text-2xl font-bold tracking-tight">
           ¿Ya juegas en una tienda de la ciudad?
         </h2>
         <p className="mx-auto mt-2 max-w-lg text-muted-foreground">

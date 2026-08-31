@@ -43,13 +43,20 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          padding: 80,
-          background: "#111827",
-          color: "#fafaf9",
+          padding: 84,
+          background: "#fff8f0",
+          color: "#2a1f17",
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ fontSize: 30, color: "#f87171", fontWeight: 700 }}>
+        <div
+          style={{
+            fontSize: 30,
+            color: "#e63946",
+            fontWeight: 800,
+            letterSpacing: -0.5,
+          }}
+        >
           {SITE_NAME.toUpperCase()}
         </div>
         <div
@@ -57,16 +64,27 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             fontSize: 78,
             fontWeight: 800,
             lineHeight: 1.05,
-            marginTop: 28,
+            letterSpacing: -1.5,
+            marginTop: 26,
             maxWidth: 1000,
             overflow: "hidden",
           }}
         >
           {cardName}
         </div>
-        <div style={{ fontSize: 34, color: "#9ca3af", marginTop: 28 }}>
+        <div style={{ fontSize: 34, color: "#6f5d48", marginTop: 26 }}>
           {sub}
         </div>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            bottom: 0,
+            width: "100%",
+            height: 14,
+            background: "#e63946",
+          }}
+        />
       </div>
     ),
     { ...size },
