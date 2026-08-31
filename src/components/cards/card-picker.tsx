@@ -355,9 +355,11 @@ export function CardPicker({
                           userId,
                         );
                         setCustomImage(listingPhotoUrl(path));
-                      } catch {
+                      } catch (err) {
                         setImageError(
-                          "No se pudo subir la imagen. Intenta de nuevo.",
+                          err instanceof Error && err.message
+                            ? `No se pudo subir la imagen. ${err.message}`
+                            : "No se pudo subir la imagen. Intenta de nuevo.",
                         );
                       } finally {
                         setUploadingImage(false);

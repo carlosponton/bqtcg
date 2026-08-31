@@ -52,9 +52,13 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   — `revoke insert` directo; la RPC exige ≥1 foto para todo `offer` y precio si
   `for_sale`. `source_collection_item_id` liga con la colección. Detalle en
   `/anuncio/[id]`. Etiqueta de UI vía `listingModeLabel()` ("Venta o cambio", …).
-- **Fotos**: bucket `listing-photos` (público). Se suben desde el **cliente**
-  (comprimidas a webp con `browser-image-compression`) a `{uid}/{grupo}/{i}.webp`;
-  el path se pasa a `create_listing`. RLS de Storage: primera carpeta = `auth.uid()`.
+- **Fotos**: bucket `listing-photos` (público). Se comprimen a webp en el
+  navegador (`browser-image-compression`) y se suben por el route handler
+  **`/api/listings/photos`** (`POST` multipart → `{path}`, `DELETE` `{paths}`),
+  que usa el cliente de **servidor**: la RLS de Storage exige sesión y el cliente
+  del navegador a veces no la tiene hidratada (daba `403 new row violates RLS`).
+  Path `{uid}/{grupo}/{i}.webp`; el path se pasa a `create_listing`. Helper
+  `src/lib/listings/photo-upload.ts` (`uploadListingPhotos` / `removeStoragePhotos`).
 - **Catálogo TCGdex** (`src/lib/tcgdex.ts`, `server-only`): usa el **SDK oficial
   `@tcgdex/sdk`** (`new TCGdex('es')` + `setEndpoint(...)`, singleton).
   `searchCards` baja la lista completa de cartas una vez (cache 6 h en memoria) y
