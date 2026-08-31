@@ -16,6 +16,7 @@ export type Json =
 export type ListingKind = "offer" | "want";
 export type ListingStatus = "active" | "reserved" | "closed" | "removed";
 export type CollectionVisibility = "private" | "unlisted" | "public";
+export type DealStatus = "pending" | "confirmed" | "cancelled";
 
 export interface Database {
   public: {
@@ -267,6 +268,33 @@ export interface Database {
           },
         ];
       };
+
+      deals: {
+        Row: {
+          id: string;
+          listing_id: string;
+          seller_id: string;
+          buyer_id: string;
+          status: DealStatus;
+          seller_confirmed: boolean;
+          buyer_confirmed: boolean;
+          buyer_note: string | null;
+          cancelled_by: string | null;
+          confirmed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Record<string, never>; // se crea sólo vía rpc('create_deal')
+        Update: Record<string, never>; // se edita sólo vía rpc
+        Relationships: [
+          {
+            foreignKeyName: "deals_listing_id_fkey";
+            columns: ["listing_id"];
+            referencedRelation: "listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
 
     Views: Record<string, never>;
@@ -292,6 +320,18 @@ export interface Database {
         Args: { p_listing_id: string; p_paths: string[] };
         Returns: undefined;
       };
+      create_deal: {
+        Args: { p_listing_id: string };
+        Returns: string;
+      };
+      confirm_deal: {
+        Args: { p_deal_id: string };
+        Returns: undefined;
+      };
+      cancel_deal: {
+        Args: { p_deal_id: string };
+        Returns: undefined;
+      };
     };
 
     Enums: Record<string, never>;
@@ -308,3 +348,4 @@ export type CollectionItem =
 export type Listing = Database["public"]["Tables"]["listings"]["Row"];
 export type ListingPhoto =
   Database["public"]["Tables"]["listing_photos"]["Row"];
+export type Deal = Database["public"]["Tables"]["deals"]["Row"];

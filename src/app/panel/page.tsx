@@ -39,7 +39,10 @@ export default async function PanelPage() {
             cerrados
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/panel/tratos">Tratos</Link>
+          </Button>
           {profile.username ? (
             <Button asChild variant="outline" size="sm">
               <Link href={`/u/${profile.username}`}>Ver mi perfil</Link>

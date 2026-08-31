@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getMyDealForListing } from "@/lib/deals/query";
 import { SITE_NAME } from "@/lib/site";
 import {
   conditionLabel,
@@ -16,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardThumb } from "@/components/cards/card-thumb";
+import { StartDeal } from "@/components/deals/start-deal";
 import type { Listing } from "@/types/database";
 
 async function loadListing(id: string) {
@@ -31,6 +33,11 @@ async function loadListing(id: string) {
     .maybeSingle();
 
   if (!listing || listing.status === "removed") return null;
+
+  const myDeal =
+    user && user.id !== listing.user_id
+      ? await getMyDealForListing(user.id, id)
+      : null;
 
   const [{ data: photos }, { data: owner }] = await Promise.all([
     supabase
@@ -52,6 +59,7 @@ async function loadListing(id: string) {
     photos: photos ?? [],
     owner,
     viewer: user,
+    myDeal,
   };
 }
 
@@ -87,7 +95,7 @@ export default async function AnuncioPage({
   const data = await loadListing(id);
   if (!data) notFound();
 
-  const { listing, photos, owner, viewer } = data;
+  const { listing, photos, owner, viewer, myDeal } = data;
   const isOwner = viewer?.id === listing.user_id;
   const ownerName =
     owner?.display_name || owner?.username || "Usuario";
@@ -240,6 +248,10 @@ export default async function AnuncioPage({
               </p>
             )}
           </div>
+
+          {viewer && !isOwner ? (
+            <StartDeal listingId={listing.id} deal={myDeal} />
+          ) : null}
         </div>
       </div>
     </div>

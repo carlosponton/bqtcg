@@ -45,7 +45,10 @@ export function UserMenu({ username, displayName, avatarUrl }: Props) {
           <Link href="/coleccion">Mis colecciones</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/panel">Mi panel</Link>
+          <Link href="/panel">Mis anuncios</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/panel/tratos">Tratos</Link>
         </DropdownMenuItem>
         {username ? (
           <DropdownMenuItem asChild>

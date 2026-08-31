@@ -96,6 +96,14 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   helper de subida compartido en `src/lib/listings/photo-upload.ts`.
 - Fase 1 pendiente (menor): reordenar fotos; avatar para usuarios de email;
   búsqueda tolerante a typos (ranking `similarity`).
-- Fase 2: `deals` + confirmación de trato, `reviews` + reputación, reportes.
+- Fase 2 slice 1 (hecha): `deals` — la otra parte registra un trato desde el
+  anuncio (`create_deal`), el vendedor lo confirma (`confirm_deal`); con ambas
+  confirmaciones queda `confirmed` (habilita reseñas). `cancel_deal` mientras
+  esté `pending`. Tabla `deals` (RLS: sólo las dos partes leen; escritura sólo
+  por las 3 RPCs SECURITY DEFINER) — migración `20260902000000_deals.sql`, no
+  toca `listings`. UI: `StartDeal` en `/anuncio/[id]`, `/panel/tratos` con
+  `DealRow`. Lógica en `src/lib/deals/{actions,query}.ts`.
+- Fase 2 pendiente: `reviews` + reputación (tras `deal` confirmado; trigger que
+  recalcula `profiles.rating_avg`/`rating_count`), reportes de anuncios/usuarios.
 - Fase 3: matching busco↔vendo, notificaciones (in-app + email con Resend).
 - Fase 4: SEO, PWA, términos + Habeas Data, analítica, lanzamiento.
