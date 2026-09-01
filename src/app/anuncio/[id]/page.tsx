@@ -132,10 +132,12 @@ export default async function AnuncioPage({
     owner?.display_name || owner?.username || "Usuario";
   const ownerSharesWhatsapp =
     !isOwner && owner?.show_whatsapp === true && Boolean(owner?.whatsapp);
-  // El WhatsApp se revela sólo cuando ambas partes confirmaron el trato.
-  const dealConfirmed = myDeal?.status === "confirmed";
+  // El WhatsApp se revela desde que el trato está en curso (`confirmed`), y
+  // sigue visible una vez `completed`.
+  const dealRevealsContact =
+    myDeal?.status === "confirmed" || myDeal?.status === "completed";
   const canContactWhatsapp =
-    Boolean(viewer) && ownerSharesWhatsapp && dealConfirmed;
+    Boolean(viewer) && ownerSharesWhatsapp && dealRevealsContact;
 
   const modeLabel = listingModeLabel(listing);
   const waMessage = `Hola, te escribo por tu anuncio en ${SITE_NAME}: "${listing.card_name}" (${modeLabel}).`;
@@ -326,8 +328,8 @@ export default async function AnuncioPage({
               </Button>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                Verás el WhatsApp cuando tú y quien publica confirmen el trato,
-                aquí abajo.
+                Verás el WhatsApp cuando quien publica acepte el trato (aquí
+                abajo).
               </p>
             )}
           </div>

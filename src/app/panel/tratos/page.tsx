@@ -28,7 +28,8 @@ export default async function TratosPage() {
     (d) => d.status === "pending" && !d.iConfirmed,
   );
   const waiting = deals.filter((d) => d.status === "pending" && d.iConfirmed);
-  const confirmed = deals.filter((d) => d.status === "confirmed");
+  const inProgress = deals.filter((d) => d.status === "confirmed");
+  const completed = deals.filter((d) => d.status === "completed");
   const cancelled = deals.filter((d) => d.status === "cancelled");
 
   return (
@@ -54,9 +55,10 @@ export default async function TratosPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <Group title="Por confirmar" items={toConfirm} />
+          <Group title="Por aceptar" items={toConfirm} />
           <Group title="Esperando a la otra persona" items={waiting} />
-          <Group title="Confirmados" items={confirmed} />
+          <Group title="En curso — coordinen y ciérrenlo" items={inProgress} />
+          <Group title="Cerrados — dejen su reseña" items={completed} />
           <Group title="Cancelados" items={cancelled} />
         </div>
       )}

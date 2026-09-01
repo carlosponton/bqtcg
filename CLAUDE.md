@@ -193,7 +193,7 @@ vive en `feat/rediseño-el-cambista`.)
   WhatsApp no se renderiza (no llega al HTML). Sin cambios de esquema.
 - Fase 2 slice 2 (hecha): `reviews` — cada parte de un `deal` `confirmed` deja
   una reseña (1–5 + comentario) de la otra. INSERT/UPDATE/DELETE por RLS (el
-  `with check` valida que el trato esté confirmado y que `reviewee_id` sea la
+  `with check` valida que el trato esté cerrado y que `reviewee_id` sea la
   contraparte); SELECT público. Trigger `reviews_rating_sync` recalcula
   `profiles.rating_avg`/`rating_count` (SECURITY DEFINER, columnas con grant).
   Migración `20260903000000_reviews.sql`. UI: `ReviewForm` en `DealRow`
