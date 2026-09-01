@@ -187,3 +187,23 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   - Falta (acción del usuario): deploy a Vercel + Supabase Cloud, poner env vars
     reales (`NEXT_PUBLIC_SITE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `CONTACT_EMAIL`),
     dominio verificado en Resend, correr migraciones pendientes.
+- Fase 5 (hecha): **decks**. Un deck es una `collections` con `kind='deck'` +
+  portada (`cover_card_id` / `cover_card_name` / `cover_image_url`); guarda sus
+  cartas en `collection_items` igual que una carpeta. Al borrarlo sus cartas se
+  van con él (el trigger `reparent_collection_items` ignora los decks). Se
+  publica como anuncio con `listings.format='deck'` + `source_collection_id`; la
+  RPC `create_listing` (misma, extendida) exige ≥1 foto real y copia las cartas
+  del deck a **`listing_deck_cards`** (snapshot congelado, RLS = visibilidad del
+  anuncio, `revoke insert/update/delete`). Constraint `listing_deck_offer`
+  (`format='single' or kind='offer'`). El anuncio del deck usa la portada como
+  miniatura (`firstPhotoUrl`), badge "Deck", y `/anuncio/[id]` lista
+  `listing_deck_cards`. Migraciones **`20260908000000`..`000002`** (DDL + tabla,
+  trigger, `create_listing` — una función por archivo). `/explorar` gana el
+  filtro `?formato=single|deck` (`EXPLORE_FORMATS` en `listings/explore.ts`).
+  UI: `/coleccion` separa "Mis colecciones" / "Mis decks"; `/coleccion/nuevo-deck`
+  (form con `CardPicker` de portada, no dialog); `/coleccion/[id]` detecta el
+  deck (cabecera con portada, `DeckCover` para cambiarla, CTA "Vender o cambiar
+  este deck" → `/publicar?deck=<id>`); `PublishForm` en modo deck oculta el
+  `CardPicker`/cantidad. Acciones nuevas: `createDeck` / `setDeckCover` en
+  `src/lib/collection/actions.ts`. `get_public_collections` ahora sólo devuelve
+  carpetas (`kind='folder'`).

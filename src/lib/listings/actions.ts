@@ -15,9 +15,11 @@ type ListingUpdate = Database["public"]["Tables"]["listings"]["Update"];
 
 export type CreateListingInput = {
   kind: "offer" | "want";
+  format?: "single" | "deck";
   for_sale: boolean;
   for_trade: boolean;
   source_collection_item_id?: string | null;
+  source_collection_id?: string | null;
   card_id?: string | null;
   custom_card_name?: string | null;
   card_name: string;
@@ -43,16 +45,14 @@ const COND = ["M", "NM", "LP", "MP", "HP", "DMG", "graded"] as const;
 const schema = z
   .object({
     kind: z.enum(["offer", "want"]),
+    format: z.enum(["single", "deck"]).catch("single"),
     for_sale: z.boolean().catch(false),
     for_trade: z.boolean().catch(false),
     source_collection_item_id: z.uuid().nullish(),
+    source_collection_id: z.uuid().nullish(),
     card_id: z.string().trim().nullish(),
     custom_card_name: z.string().trim().max(120).nullish(),
-    card_name: z
-      .string()
-      .trim()
-      .min(1, { error: "Elige o escribe la carta." })
-      .max(160),
+    card_name: z.string().trim().max(160).default(""),
     card_image: z.string().trim().nullish(),
     language: z.enum(LANG).catch("es"),
     condition: z.union([z.enum(COND), z.literal(""), z.null()]).optional(),
@@ -67,6 +67,14 @@ const schema = z
   .refine((d) => d.kind !== "offer" || d.for_sale || d.for_trade, {
     error: "Marca si la vendes, la cambias, o ambas.",
     path: ["for_sale"],
+  })
+  .refine((d) => d.format === "deck" || d.card_name.length >= 1, {
+    error: "Elige o escribe la carta.",
+    path: ["card_name"],
+  })
+  .refine((d) => d.format !== "deck" || d.source_collection_id != null, {
+    error: "Falta el deck de origen.",
+    path: ["source_collection_id"],
   })
   .refine((d) => !d.for_sale || (d.price_cop != null && d.price_cop > 0), {
     error: "Ponle un precio a la venta.",
@@ -97,27 +105,56 @@ export async function createListing(
   if (!user) return { ok: false, error: "Inicia sesión para publicar." };
 
   const v = parsed.data;
+  const isDeck = v.format === "deck";
   const isOffer = v.kind === "offer";
   const forSale = isOffer && v.for_sale;
   const forTrade = isOffer && v.for_trade;
 
-  let resolved;
-  try {
-    resolved = await resolveCard({
-      cardId: v.card_id,
-      customName: v.custom_card_name,
-      cardNameHint: v.card_name,
-      imageHint: v.card_image,
-    });
-  } catch {
-    return { ok: false, error: "No se pudo identificar la carta." };
+  let resolved: {
+    card_id: string | null;
+    custom_card_name: string | null;
+    card_name: string;
+    set_name: string | null;
+    image_url: string | null;
+  };
+
+  if (isDeck) {
+    const { data: deck } = await supabase
+      .from("collections")
+      .select("id, name, kind, cover_image_url")
+      .eq("id", v.source_collection_id!)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!deck || deck.kind !== "deck") {
+      return { ok: false, error: "Ese deck ya no existe.", field: "source_collection_id" };
+    }
+    resolved = {
+      card_id: null,
+      custom_card_name: deck.name,
+      card_name: deck.name,
+      set_name: null,
+      image_url: deck.cover_image_url,
+    };
+  } else {
+    try {
+      resolved = await resolveCard({
+        cardId: v.card_id,
+        customName: v.custom_card_name,
+        cardNameHint: v.card_name,
+        imageHint: v.card_image,
+      });
+    } catch {
+      return { ok: false, error: "No se pudo identificar la carta." };
+    }
   }
 
   const payload: Record<string, Json> = {
     kind: v.kind,
+    format: v.format,
     for_sale: forSale,
     for_trade: forTrade,
     source_collection_item_id: v.source_collection_item_id ?? null,
+    source_collection_id: isDeck ? (v.source_collection_id ?? null) : null,
     card_id: resolved.card_id,
     custom_card_name: resolved.custom_card_name,
     card_name: resolved.card_name,
@@ -125,7 +162,7 @@ export async function createListing(
     image_url: resolved.image_url,
     language: v.language,
     condition: v.condition || null,
-    quantity: v.quantity,
+    quantity: isDeck ? 1 : v.quantity,
     price_cop: forSale ? (v.price_cop ?? null) : null,
     price_negotiable: forSale ? v.price_negotiable : false,
     trade_for: forTrade ? (v.trade_for ?? null) : null,
@@ -180,6 +217,9 @@ export async function createListing(
   }
 
   revalidatePath("/coleccion");
+  if (isDeck && v.source_collection_id) {
+    revalidatePath(`/coleccion/${v.source_collection_id}`);
+  }
   revalidatePath("/panel");
   return { ok: true, id: listingId };
 }

@@ -11,9 +11,15 @@ type Props = {
   collectionId: string;
   name: string;
   isDefault: boolean;
+  isDeck?: boolean;
 };
 
-export function CollectionAdmin({ collectionId, name, isDefault }: Props) {
+export function CollectionAdmin({
+  collectionId,
+  name,
+  isDefault,
+  isDeck = false,
+}: Props) {
   const [value, setValue] = useState(name);
 
   return (
@@ -42,7 +48,9 @@ export function CollectionAdmin({ collectionId, name, isDefault }: Props) {
           onSubmit={(e) => {
             if (
               !window.confirm(
-                "¿Borrar esta colección? Sus cartas se moverán a tu colección por defecto.",
+                isDeck
+                  ? "¿Borrar este deck? Se quitarán sus cartas (no afecta un anuncio ya publicado)."
+                  : "¿Borrar esta colección? Sus cartas se moverán a tu colección por defecto.",
               )
             ) {
               e.preventDefault();
@@ -51,7 +59,7 @@ export function CollectionAdmin({ collectionId, name, isDefault }: Props) {
         >
           <input type="hidden" name="id" value={collectionId} />
           <Button type="submit" variant="destructive" size="sm">
-            Borrar colección
+            {isDeck ? "Borrar deck" : "Borrar colección"}
           </Button>
         </form>
       ) : null}

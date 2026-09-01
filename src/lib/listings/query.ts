@@ -3,11 +3,12 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { listingPhotoUrl } from "@/lib/listings";
 import { PAGE_SIZE, type ExploreParams } from "@/lib/listings/explore";
-import type { ListingKind, ListingStatus } from "@/types/database";
+import type { ListingFormat, ListingKind, ListingStatus } from "@/types/database";
 
 export type ListingListItem = {
   id: string;
   kind: ListingKind;
+  format: ListingFormat;
   for_sale: boolean;
   for_trade: boolean;
   card_name: string;
@@ -25,12 +26,13 @@ export type ListingListItem = {
 };
 
 const LISTING_COLS =
-  "id, user_id, kind, for_sale, for_trade, card_name, set_name, image_url, language, condition, price_cop, price_negotiable, trade_for, city, status, bumped_at, listing_photos(storage_path, sort_order)";
+  "id, user_id, kind, format, for_sale, for_trade, card_name, set_name, image_url, language, condition, price_cop, price_negotiable, trade_for, city, status, bumped_at, listing_photos(storage_path, sort_order)";
 
 type ListingRowWithPhotos = {
   id: string;
   user_id: string;
   kind: ListingKind;
+  format: ListingFormat;
   for_sale: boolean;
   for_trade: boolean;
   card_name: string;
@@ -48,6 +50,9 @@ type ListingRowWithPhotos = {
 };
 
 function firstPhotoUrl(row: ListingRowWithPhotos): string | null {
+  // Un deck se muestra con su carta de portada; las fotos reales viven en el
+  // detalle del anuncio.
+  if (row.format === "deck" && row.image_url) return row.image_url;
   const photos = [...(row.listing_photos ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order,
   );
@@ -62,6 +67,7 @@ function shape(
   return rows.map((row) => ({
     id: row.id,
     kind: row.kind,
+    format: row.format,
     for_sale: row.for_sale,
     for_trade: row.for_trade,
     card_name: row.card_name,
@@ -126,6 +132,8 @@ export async function searchListings(
   if (params.mode === "venta") query = query.eq("for_sale", true);
   else if (params.mode === "cambio") query = query.eq("for_trade", true);
   else if (params.mode === "busco") query = query.eq("kind", "want");
+
+  if (params.format) query = query.eq("format", params.format);
 
   if (params.language) query = query.eq("language", params.language);
   if (params.condition) query = query.eq("condition", params.condition);

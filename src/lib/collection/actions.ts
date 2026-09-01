@@ -122,6 +122,121 @@ export async function setCollectionVisibility(
   return { ok: true as const };
 }
 
+// --- Decks (colección con kind='deck' + carta de portada) ---------------
+
+const deckSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: "Ponle un nombre al deck." })
+    .max(60, { error: "Máximo 60 caracteres." }),
+  visibility: z.enum(VIS).catch("private"),
+  card_id: z.string().trim().optional(),
+  custom_card_name: z.string().trim().max(120).optional(),
+  card_name: z
+    .string()
+    .trim()
+    .min(1, { error: "Elige la carta de portada." })
+    .max(160),
+  card_image: z.string().trim().optional(),
+});
+
+async function resolveCover(v: {
+  card_id?: string;
+  custom_card_name?: string;
+  card_name: string;
+  card_image?: string;
+}) {
+  return resolveCard({
+    cardId: v.card_id,
+    customName: v.custom_card_name,
+    cardNameHint: v.card_name,
+    imageHint: v.card_image,
+  });
+}
+
+export async function createDeck(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = deckSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const { supabase, user } = await requireUser();
+  const v = parsed.data;
+
+  let cover;
+  try {
+    cover = await resolveCover(v);
+  } catch {
+    return { error: "No se pudo identificar la carta de portada." };
+  }
+
+  const { data, error } = await supabase
+    .from("collections")
+    .insert({
+      user_id: user.id,
+      name: v.name,
+      visibility: v.visibility,
+      kind: "deck",
+      cover_card_id: cover.card_id,
+      cover_card_name: cover.card_name,
+      cover_image_url: cover.image_url,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: "No se pudo crear el deck." };
+  }
+
+  revalidatePath("/coleccion");
+  redirect(`/coleccion/${data.id}`);
+}
+
+export async function setDeckCover(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const id = formData.get("id");
+  if (typeof id !== "string") return { error: "Deck no válido." };
+
+  const parsed = deckSchema
+    .pick({ card_id: true, custom_card_name: true, card_name: true, card_image: true })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const { supabase, user } = await requireUser();
+
+  let cover;
+  try {
+    cover = await resolveCover(parsed.data);
+  } catch {
+    return { error: "No se pudo identificar la carta." };
+  }
+
+  const { error } = await supabase
+    .from("collections")
+    .update({
+      cover_card_id: cover.card_id,
+      cover_card_name: cover.card_name,
+      cover_image_url: cover.image_url,
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("kind", "deck");
+
+  if (error) return { error: "No se pudo cambiar la portada." };
+
+  revalidatePath("/coleccion");
+  revalidatePath(`/coleccion/${id}`);
+  return { ok: true };
+}
+
 // --- Cartas dentro de una colección ------------------------------------
 
 const addSchema = z.object({

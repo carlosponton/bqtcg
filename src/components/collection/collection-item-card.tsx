@@ -17,6 +17,8 @@ type Props = {
   listing: { for_sale: boolean; for_trade: boolean } | null;
   /** otras colecciones del usuario, para mover la carta */
   otherCollections: { id: string; name: string }[];
+  /** oculta vender/cambiar por carta (los decks se venden completos) */
+  hideListingActions?: boolean;
 };
 
 function listedLabel(l: { for_sale: boolean; for_trade: boolean }): string {
@@ -26,7 +28,12 @@ function listedLabel(l: { for_sale: boolean; for_trade: boolean }): string {
   return "Publicada";
 }
 
-export function CollectionItemCard({ item, listing, otherCollections }: Props) {
+export function CollectionItemCard({
+  item,
+  listing,
+  otherCollections,
+  hideListingActions = false,
+}: Props) {
   return (
     <div className="flex gap-3 rounded-lg border p-3">
       <CardThumb src={item.image_url} alt={item.card_name} className="w-16 shrink-0" />
@@ -48,7 +55,7 @@ export function CollectionItemCard({ item, listing, otherCollections }: Props) {
         ) : null}
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {listing ? (
+          {hideListingActions ? null : listing ? (
             <Badge variant="secondary">{listedLabel(listing)}</Badge>
           ) : (
             <>

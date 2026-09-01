@@ -20,7 +20,7 @@ export default async function EditListingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, kind, for_sale, for_trade, card_name, set_name, image_url, language, condition, quantity, price_cop, price_negotiable, trade_for, description, status, user_id",
+      "id, kind, format, for_sale, for_trade, card_name, set_name, image_url, language, condition, quantity, price_cop, price_negotiable, trade_for, description, status, user_id",
     )
     .eq("id", id)
     .eq("user_id", user.id)
