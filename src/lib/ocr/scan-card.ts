@@ -4,8 +4,10 @@
  * `tesseract.js` se carga con `import()` dinámico: sólo se descarga (~4 MB,
  * desde su CDN) cuando alguien usa el escáner. Nada de esto llega al servidor.
  *
- * `scanCard()` recibe la carta YA recortada y encuadrada (ver `CardAlignCrop`,
- * paso previo en el que el usuario ajusta el recuadro sobre su foto) — así las
+ * `scanCard()` recibe la carta YA recortada y encuadrada — o bien desde
+ * `CardLiveCapture` (cámara en vivo con guía del tamaño de una carta, la vía
+ * normal: `videoFrameToCardCanvas`) o desde `CardAlignCrop` (recorte a mano
+ * sobre una foto ya tomada, respaldo cuando no hay cámara en vivo). Así las
  * fracciones de zona de abajo caen sobre la carta real y no sobre mesa/fondo,
  * que era el problema cuando se leía directo la foto sin alinear. Dentro de
  * esa carta se leen por separado el nombre (arriba) y el número/total/sigla
@@ -28,10 +30,50 @@ export type ScanFields = {
 
 type Region = { x: number; y: number; w: number; h: number };
 
+/** Proporción física de una carta de Pokémon (63 × 88 mm), ancho / alto. */
+export const CARD_RATIO = 2.5 / 3.5;
+
 /** Banda del nombre (arriba, casi todo el ancho). Fracciones 0–1 de la carta ya recortada. */
 export const NAME_REGION: Region = { x: 0.03, y: 0.02, w: 0.94, h: 0.15 };
 /** Banda inferior izquierda: número / total / sigla / ilustrador. */
 export const BOTTOM_REGION: Region = { x: 0.0, y: 0.84, w: 0.66, h: 0.16 };
+
+/**
+ * Recorta el frame actual de un `<video>` a la proporción de una carta (el
+ * mismo recorte "cover" que ya se ve en pantalla si el contenedor tiene
+ * `aspect-ratio: CARD_RATIO` y el video usa `object-fit: cover`) y lo
+ * normaliza a un canvas de `outWidth` de ancho. Con la cámara en vivo y una
+ * guía del tamaño de una carta, no hace falta alinear a mano después: lo que
+ * se ve dentro de la guía es exactamente lo que se captura.
+ */
+export function videoFrameToCardCanvas(
+  video: HTMLVideoElement,
+  outWidth = 1000,
+): HTMLCanvasElement {
+  const vw = video.videoWidth || 1;
+  const vh = video.videoHeight || 1;
+  const videoRatio = vw / vh;
+
+  let cropW: number;
+  let cropH: number;
+  if (videoRatio > CARD_RATIO) {
+    cropH = vh;
+    cropW = vh * CARD_RATIO;
+  } else {
+    cropW = vw;
+    cropH = vw / CARD_RATIO;
+  }
+  const cropX = (vw - cropW) / 2;
+  const cropY = (vh - cropH) / 2;
+
+  const outH = Math.round(outWidth / CARD_RATIO);
+  const canvas = document.createElement("canvas");
+  canvas.width = outWidth;
+  canvas.height = outH;
+  const ctx = canvas.getContext("2d");
+  ctx?.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outWidth, outH);
+  return canvas;
+}
 
 /** Recorta una zona de un canvas, la escala a `outWidth` y la deja en gris con más contraste. */
 function crop(

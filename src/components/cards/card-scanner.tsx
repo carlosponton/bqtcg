@@ -5,6 +5,7 @@ import { Camera, RefreshCw } from "lucide-react";
 
 import { scanCard, type ScanFields } from "@/lib/ocr/scan-card";
 import { CardAlignCrop } from "@/components/cards/card-align-crop";
+import { CardLiveCapture } from "@/components/cards/card-live-capture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,9 @@ type Candidate = {
   setName: string | null;
 };
 
-type Stage = "idle" | "align" | "ocr" | "review";
+// "camera": vista en vivo con guía (vía normal). "idle": subir una foto a
+// mano (respaldo si la cámara falla, o si el usuario la prefiere).
+type Stage = "camera" | "idle" | "align" | "ocr" | "review";
 
 /**
  * Escáner de carta con la cámara. El OCR (Tesseract.js) corre 100 % en el
@@ -39,7 +42,7 @@ type Stage = "idle" | "align" | "ocr" | "review";
 export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
-  const [stage, setStage] = useState<Stage>("idle");
+  const [stage, setStage] = useState<Stage>("camera");
   const [photo, setPhoto] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [fields, setFields] = useState<ScanFields | null>(null);
@@ -48,7 +51,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
-    setStage("idle");
+    setStage("camera");
     setPhoto(null);
     setProgress(0);
     setFields(null);
@@ -100,7 +103,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
       if (result.name || result.number) void search(result);
     } catch {
       setError(
-        "No se pudo leer la carta. Prueba con más luz y encuadrando bien el recorte.",
+        "No se pudo leer la carta. Prueba con más luz y encuadrando bien la carta.",
       );
       setStage("review");
       setFields({
@@ -124,7 +127,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (!o) reset();
+        reset();
       }}
     >
       <DialogTrigger asChild>
@@ -138,9 +141,8 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
         <DialogHeader>
           <DialogTitle>Escanear carta</DialogTitle>
           <DialogDescription>
-            Toma una foto de la carta con buena luz. Después ajustas el
-            recuadro sobre la carta para leer bien el nombre y el número (ej.
-            136/189).
+            Encuadra la carta dentro de la guía y toca «Capturar». Se lee el
+            nombre y el número (ej. 136/189) para buscarla en el catálogo.
           </DialogDescription>
         </DialogHeader>
 
@@ -157,15 +159,31 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
           }}
         />
 
+        {stage === "camera" ? (
+          <CardLiveCapture
+            onCapture={(canvas) => void onAligned(canvas)}
+            onFallback={() => setStage("idle")}
+          />
+        ) : null}
+
         {stage === "idle" ? (
           <div className="flex flex-col items-center gap-3 py-4">
             <Button type="button" onClick={() => fileRef.current?.click()}>
               <Camera className="size-4" />
-              Tomar foto de la carta
+              Tomar o elegir una foto
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              La foto se procesa en tu teléfono; no se sube a ningún lado.
+              No se pudo abrir la cámara en vivo (o preferiste subir una
+              foto). Ajustarás el recuadro a mano en el paso siguiente. La
+              foto se procesa en tu teléfono; no se sube a ningún lado.
             </p>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline underline-offset-2"
+              onClick={() => setStage("camera")}
+            >
+              Reintentar la cámara en vivo
+            </button>
           </div>
         ) : null}
 
@@ -245,7 +263,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
                 type="button"
                 size="sm"
                 variant="ghost"
-                onClick={() => fileRef.current?.click()}
+                onClick={() => setStage("camera")}
               >
                 Otra foto
               </Button>
