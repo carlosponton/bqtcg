@@ -105,6 +105,19 @@ vive en `feat/rediseño-el-cambista`.)
   campo de precio en `PublishForm` (sólo `offer` + `for_sale` + carta del
   catálogo; `CardPicker` avisa con `onSelect`). Es orientativo (mercado
   internacional), nunca precio sugerido; no se guarda en `listings`.
+- **Escaneo de carta con la cámara** (todo gratis, sin servidor de OCR): botón
+  "Escanear con la cámara" en `CardPicker` (modo catálogo, no `locked`).
+  `CardScanner` toma una foto (`<input capture>`), la reduce a gris en un
+  canvas y corre **Tesseract.js** en el navegador (`import()` dinámico, ~4 MB
+  desde su CDN, sólo al usar el escáner) — `src/lib/ocr/scan-card.ts`
+  (`scanCard` + `parseCardText`: nombre, número `N/T`, total, sigla S&V).
+  Los campos son editables; `GET /api/cards/scan?name=&number=&total=&code=`
+  llama a `matchScannedCard()` (`src/lib/tcgdex.ts`), que cruza contra el
+  catálogo cacheado: filtra por `localId`, puntúa por total oficial del set
+  (`getSetsMap`, cache 6 h), sigla (`SV_SET_CODES`) y parecido de nombre.
+  Siempre muestra candidatas para confirmar; nunca elige solo. La foto no se
+  sube a ningún lado. `pnpm-workspace.yaml` marca `tesseract.js` como
+  `allowBuilds: false` (su postinstall es sólo un aviso de donación).
 - Tipos en `src/types/database.ts` a mano (regenerar con `supabase gen types`).
 
 ## Roadmap

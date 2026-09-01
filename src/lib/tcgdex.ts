@@ -112,6 +112,10 @@ let listInflight: Promise<TcgApiCardResume[]> | null = null;
 let excludedSetsCache: { at: number; ids: Set<string> } | null = null;
 let excludedSetsInflight: Promise<Set<string>> | null = null;
 
+type SetInfo = { name: string; official: number | null; total: number | null };
+let setsMapCache: { at: number; map: Map<string, SetInfo> } | null = null;
+let setsMapInflight: Promise<Map<string, SetInfo>> | null = null;
+
 /** Normaliza para comparar nombres: minúsculas, sin acentos, signos → espacio. */
 function normalize(value: string): string {
   return value
@@ -214,6 +218,150 @@ export async function searchCards(
     name: m.card.name,
     image: cardImage(m.card.image, "low"),
   }));
+}
+
+// --- Escaneo de carta con la cámara -----------------------------------
+
+/** `setId → {nombre, total impreso, total con secretas}` (cache 6 h). */
+async function getSetsMap(): Promise<Map<string, SetInfo>> {
+  if (setsMapCache && Date.now() - setsMapCache.at < LIST_TTL_MS) {
+    return setsMapCache.map;
+  }
+  if (!setsMapInflight) {
+    setsMapInflight = getSets()
+      .then((sets) => {
+        const map = new Map<string, SetInfo>();
+        for (const s of sets) {
+          map.set(s.id, {
+            name: s.name,
+            official: s.cardCount?.official ?? null,
+            total: s.cardCount?.total ?? null,
+          });
+        }
+        if (map.size > 0) setsMapCache = { at: Date.now(), map };
+        return map;
+      })
+      .finally(() => {
+        setsMapInflight = null;
+      });
+  }
+  return setsMapInflight;
+}
+
+export type ScanQuery = {
+  name?: string | null;
+  /** Número impreso en la carta (`localId`), ej. "136" o "TG12". */
+  number?: string | null;
+  /** Denominador impreso, ej. 189 (suele ser el conteo "oficial" del set). */
+  setTotal?: number | null;
+  /** Sigla del set en cartas Escarlata y Púrpura, ej. "OBF". */
+  setCode?: string | null;
+};
+
+export type ScanCandidate = TcgCardBrief & {
+  setName: string | null;
+  setTotal: number | null;
+};
+
+/**
+ * Sigla oficial impresa en las cartas Escarlata y Púrpura → id de set en
+ * TCGdex (que usa `svNN`, no la sigla). Sólo es una pista extra; ampliar
+ * cuando salgan sets nuevos. (`abbreviation.official` existe en TCGdex pero
+ * sólo en el detalle de cada set, no en el listado.)
+ */
+const SV_SET_CODES: Record<string, string> = {
+  SVI: "sv01", PAL: "sv02", OBF: "sv03", MEW: "sv03.5", PAR: "sv04",
+  PAF: "sv04.5", TEF: "sv05", TWM: "sv06", SFA: "sv06.5", SCR: "sv07",
+  SSP: "sv08", PRE: "sv08.5", JTG: "sv09", DRI: "sv10", "": "",
+};
+
+/** Normaliza un número de carta: sin espacios, sin ceros a la izquierda. */
+function normNumber(value: string): string {
+  return value
+    .replace(/\s+/g, "")
+    .toUpperCase()
+    .replace(/^([A-Z]*)0+(\d)/, "$1$2");
+}
+
+/**
+ * Empareja lo leído por OCR con el catálogo (ya cacheado en memoria). El número
+ * impreso + el total del set suelen dejar 1–4 candidatas; el nombre desempata.
+ * Devuelve hasta `limit` candidatas ordenadas por confianza.
+ */
+export async function matchScannedCard(
+  q: ScanQuery,
+  limit = 8,
+): Promise<ScanCandidate[]> {
+  const [all, sets] = await Promise.all([getAllCards(), getSetsMap()]);
+
+  const nameNorm = q.name ? normalize(q.name) : "";
+  const nameTokens = nameNorm.split(" ").filter((t) => t.length > 2);
+  const numNorm = q.number ? normNumber(q.number) : "";
+  const codeSetId = q.setCode
+    ? SV_SET_CODES[q.setCode.trim().toUpperCase()]
+    : undefined;
+
+  const pool = numNorm
+    ? all.filter((c) => normNumber(c.localId) === numNorm)
+    : all;
+
+  const scored: { card: TcgApiCardResume; score: number }[] = [];
+  for (const card of pool) {
+    const setId = setIdOf(card.id);
+    const set = sets.get(setId);
+    let score = numNorm ? 5 : 0;
+
+    if (q.setTotal && set) {
+      if (set.official === q.setTotal) score += 50;
+      else if (set.total === q.setTotal) score += 30;
+    }
+    if (codeSetId && setId === codeSetId) {
+      score += 30;
+    }
+
+    if (nameNorm) {
+      const cn = normalize(card.name);
+      if (cn === nameNorm) score += 45;
+      else if (cn.includes(nameNorm) || nameNorm.includes(cn)) score += 25;
+      else {
+        const tokens = new Set(cn.split(" "));
+        score += nameTokens.filter((t) => tokens.has(t)).length * 8;
+      }
+    }
+
+    if (score > 0) scored.push({ card, score });
+  }
+
+  scored.sort(
+    (a, b) => b.score - a.score || a.card.name.localeCompare(b.card.name, "es"),
+  );
+
+  const toCandidate = (card: TcgApiCardResume): ScanCandidate => {
+    const set = sets.get(setIdOf(card.id));
+    return {
+      id: card.id,
+      localId: card.localId,
+      name: card.name,
+      image: cardImage(card.image, "low"),
+      setName: set?.name ?? null,
+      setTotal: set?.official ?? set?.total ?? null,
+    };
+  };
+
+  if (scored.length > 0) {
+    return scored.slice(0, limit).map((s) => toCandidate(s.card));
+  }
+
+  // Nada casó por número: último recurso, búsqueda por nombre.
+  if (nameNorm.length >= 2 && q.name) {
+    const byName = await searchCards(q.name, limit);
+    return byName.map((b) => {
+      const set = sets.get(setIdOf(b.id));
+      return { ...b, setName: set?.name ?? null, setTotal: set?.official ?? set?.total ?? null };
+    });
+  }
+
+  return [];
 }
 
 export async function getCard(id: string): Promise<TcgCardFull> {

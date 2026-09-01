@@ -22,6 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CardThumb } from "@/components/cards/card-thumb";
+import { CardScanner } from "@/components/cards/card-scanner";
 
 type Result = {
   id: string;
@@ -155,6 +156,7 @@ export function CardPicker({
       <input type="hidden" name="card_image" value={image} />
 
       {mode === "catalog" ? (
+        <>
         <Popover
           open={open}
           onOpenChange={(o) => {
@@ -314,6 +316,16 @@ export function CardPicker({
             )}
           </PopoverContent>
         </Popover>
+        {!locked ? (
+          <div className="self-start">
+            <CardScanner
+              onPick={(c) =>
+                choose({ id: c.id, name: c.name, image: c.image })
+              }
+            />
+          </div>
+        ) : null}
+        </>
       ) : (
         <div className="flex flex-col gap-2">
           <Input
