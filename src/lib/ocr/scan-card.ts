@@ -39,24 +39,28 @@ export const NAME_REGION: Region = { x: 0.03, y: 0.02, w: 0.94, h: 0.15 };
 export const BOTTOM_REGION: Region = { x: 0.0, y: 0.84, w: 0.66, h: 0.16 };
 
 /**
- * Recorta el frame actual de un `<video>` a la proporción de una carta (el
- * mismo recorte "cover" que ya se ve en pantalla si el contenedor tiene
- * `aspect-ratio: CARD_RATIO` y el video usa `object-fit: cover`) y lo
- * normaliza a un canvas de `outWidth` de ancho. Con la cámara en vivo y una
- * guía del tamaño de una carta, no hace falta alinear a mano después: lo que
- * se ve dentro de la guía es exactamente lo que se captura.
+ * Recorta el frame de la cámara (un `<video>` o el `ImageBitmap` de un
+ * `ImageCapture.takePhoto()`) a la proporción de una carta — el mismo recorte
+ * "cover" que ya se ve en pantalla si el visor usa `aspect-ratio: CARD_RATIO`
+ * + `object-fit: cover` — y lo normaliza a un canvas.
+ *
+ * El ancho de salida sigue la resolución nativa del recorte (hasta `maxWidth`)
+ * en vez de un valor fijo bajo: la banda del número es diminuta y a poca
+ * resolución el OCR no la leía.
  */
-export function videoFrameToCardCanvas(
-  video: HTMLVideoElement,
-  outWidth = 1000,
+export function frameToCardCanvas(
+  source: HTMLVideoElement | ImageBitmap,
+  maxWidth = 2400,
 ): HTMLCanvasElement {
-  const vw = video.videoWidth || 1;
-  const vh = video.videoHeight || 1;
-  const videoRatio = vw / vh;
+  const vw =
+    ("videoWidth" in source ? source.videoWidth : source.width) || 1;
+  const vh =
+    ("videoHeight" in source ? source.videoHeight : source.height) || 1;
+  const ratio = vw / vh;
 
   let cropW: number;
   let cropH: number;
-  if (videoRatio > CARD_RATIO) {
+  if (ratio > CARD_RATIO) {
     cropH = vh;
     cropW = vh * CARD_RATIO;
   } else {
@@ -66,12 +70,18 @@ export function videoFrameToCardCanvas(
   const cropX = (vw - cropW) / 2;
   const cropY = (vh - cropH) / 2;
 
-  const outH = Math.round(outWidth / CARD_RATIO);
+  const outW = Math.round(
+    Math.min(maxWidth, Math.max(1200, cropW)),
+  );
+  const outH = Math.round(outW / CARD_RATIO);
   const canvas = document.createElement("canvas");
-  canvas.width = outWidth;
+  canvas.width = outW;
   canvas.height = outH;
   const ctx = canvas.getContext("2d");
-  ctx?.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outWidth, outH);
+  if (ctx) {
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(source, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+  }
   return canvas;
 }
 
@@ -98,11 +108,14 @@ function crop(
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(source, sx, sy, sw, sh, 0, 0, w, h);
 
+  // Gris + estirón de contraste alrededor del medio (texto oscuro sobre carta
+  // clara): ayuda al OCR, sobre todo con la banda pequeña del número.
   const img = ctx.getImageData(0, 0, w, h);
   const d = img.data;
+  const contrast = 1.5;
   for (let i = 0; i < d.length; i += 4) {
     const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    const v = g < 115 ? Math.max(0, g - 28) : Math.min(255, g + 28);
+    const v = Math.min(255, Math.max(0, (g - 128) * contrast + 128));
     d[i] = d[i + 1] = d[i + 2] = v;
   }
   ctx.putImageData(img, 0, 0);
@@ -188,8 +201,8 @@ export async function scanCard(
 ): Promise<ScanFields> {
   const { createWorker, PSM } = await import("tesseract.js");
 
-  const nameCanvas = crop(cardCanvas, NAME_REGION, 1100);
-  const bottomCanvas = crop(cardCanvas, BOTTOM_REGION, 1500);
+  const nameCanvas = crop(cardCanvas, NAME_REGION, 1400);
+  const bottomCanvas = crop(cardCanvas, BOTTOM_REGION, 2000);
 
   let step = 0;
   const report = (frac: number) => onProgress?.((step + frac) / 2);
