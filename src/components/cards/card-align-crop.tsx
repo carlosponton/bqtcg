@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { CARD_RATIO } from "@/lib/ocr/scan-card";
 import { Button } from "@/components/ui/button";
 
-/** Proporción física de una carta de Pokémon (63 × 88 mm). */
-const CARD_RATIO = 2.5 / 3.5;
 const MIN_W = 0.15;
 
 type Rect = { x: number; y: number; w: number; h: number }; // fracciones 0–1
