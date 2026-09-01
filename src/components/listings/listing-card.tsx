@@ -27,7 +27,7 @@ export function ListingCard({ item }: { item: ListingListItem }) {
           alt={item.card_name}
           className="w-full transition-transform group-hover:scale-[1.02]"
         />
-        <div className="absolute left-2 top-2 flex gap-1">
+        <div className="absolute bottom-2 right-2 flex gap-1">
           <Badge>{mode}</Badge>
           {item.format === "deck" ? (
             <Badge variant="secondary">{DECK_LABEL}</Badge>
