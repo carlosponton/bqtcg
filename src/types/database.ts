@@ -319,6 +319,7 @@ export interface Database {
           seller_id: string;
           buyer_id: string;
           status: DealStatus;
+          quantity: number;
           seller_confirmed: boolean;
           buyer_confirmed: boolean;
           buyer_note: string | null;
@@ -439,7 +440,7 @@ export interface Database {
         Returns: undefined;
       };
       create_deal: {
-        Args: { p_listing_id: string };
+        Args: { p_listing_id: string; p_quantity?: number };
         Returns: string;
       };
       confirm_deal: {

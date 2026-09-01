@@ -11,14 +11,23 @@ import { Button } from "@/components/ui/button";
 type Props = {
   listingId: string;
   listingStatus?: string;
+  /** Cantidad del anuncio (unidades / cuántas cartas se buscan). */
+  listingQuantity?: number;
   deal: MyDealForListing;
 };
 
 /** Bloque de "registrar / confirmar trato" en el detalle del anuncio. */
-export function StartDeal({ listingId, listingStatus, deal }: Props) {
+export function StartDeal({
+  listingId,
+  listingStatus,
+  listingQuantity = 1,
+  deal,
+}: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const maxQty = Math.max(1, listingQuantity);
+  const [qty, setQty] = useState(1);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
@@ -54,11 +63,29 @@ export function StartDeal({ listingId, listingStatus, deal }: Props) {
           ambos, verán el WhatsApp del otro para coordinar y podrán dejarse una
           reseña.
         </p>
+        {maxQty > 1 ? (
+          <label className="mt-3 flex items-center gap-2 text-xs font-medium">
+            ¿Cuántas cartas cubre el trato?
+            <input
+              type="number"
+              min={1}
+              max={maxQty}
+              value={qty}
+              onChange={(e) =>
+                setQty(
+                  Math.min(maxQty, Math.max(1, Math.floor(Number(e.target.value) || 1))),
+                )
+              }
+              className="h-8 w-16 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+            <span className="font-normal text-muted-foreground">de {maxQty}</span>
+          </label>
+        ) : null}
         <Button
           size="sm"
           className="mt-3"
           disabled={pending}
-          onClick={() => run(() => startDeal(listingId))}
+          onClick={() => run(() => startDeal(listingId, qty))}
         >
           {pending ? "Registrando…" : "Registrar el trato"}
         </Button>
@@ -72,7 +99,10 @@ export function StartDeal({ listingId, listingStatus, deal }: Props) {
   if (deal.status === "confirmed") {
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-        <p className="text-sm font-medium">Trato confirmado ✓</p>
+        <p className="text-sm font-medium">
+          Trato confirmado ✓
+          {deal.quantity > 1 ? ` · ${deal.quantity} cartas` : ""}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">
           Ambos confirmaron. Ya pueden ver el WhatsApp del otro (arriba) para
           coordinar, y dejar una reseña desde{" "}
@@ -91,10 +121,12 @@ export function StartDeal({ listingId, listingStatus, deal }: Props) {
       {deal.iAmSeller && !deal.sellerConfirmed ? (
         <>
           <p className="text-sm font-medium">
-            La otra persona registró un trato por esta carta
+            La otra persona registró un trato por{" "}
+            {deal.quantity > 1 ? `${deal.quantity} de estas cartas` : "esta carta"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Confírmalo si es correcto.
+            Confírmalo si es correcto. Al confirmar, se descuenta esa cantidad
+            del anuncio.
           </p>
           <Button
             size="sm"
