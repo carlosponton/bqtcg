@@ -7,7 +7,7 @@ import { Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME } from "@/lib/site";
 import { whatsappLink } from "@/lib/listings";
-import { hasConfirmedDealWith } from "@/lib/deals/query";
+import { hasActiveDealWith } from "@/lib/deals/query";
 import { listUserListings } from "@/lib/listings/query";
 import { getReviewsForUser } from "@/lib/reviews/query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,7 +46,7 @@ async function loadProfile(username: string) {
     supabase.rpc("get_public_collections", { p_username: username }),
     getReviewsForUser(profile.id),
     viewer && viewer.id !== profile.id
-      ? hasConfirmedDealWith(viewer.id, profile.id)
+      ? hasActiveDealWith(viewer.id, profile.id)
       : Promise.resolve(false),
   ]);
 
@@ -95,7 +95,7 @@ export default async function PublicProfilePage({
 
   const sharesWhatsapp =
     !isSelf && profile.show_whatsapp === true && Boolean(profile.whatsapp);
-  // El WhatsApp se revela sólo tras un trato confirmado por ambas partes.
+  // El WhatsApp se revela con un trato en curso (`confirmed`) o cerrado.
   const canContactWhatsapp = Boolean(viewer) && sharesWhatsapp && dealConfirmed;
 
   return (
@@ -172,7 +172,7 @@ export default async function PublicProfilePage({
             </Button>
           ) : sharesWhatsapp ? (
             <span className="self-center text-xs text-muted-foreground">
-              WhatsApp tras un trato confirmado
+              WhatsApp al aceptar un trato con esta persona
             </span>
           ) : null}
           {viewer && !isSelf ? (

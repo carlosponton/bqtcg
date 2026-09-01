@@ -18,7 +18,11 @@ export type ListingStatus = "active" | "reserved" | "closed" | "removed";
 export type ListingFormat = "single" | "deck";
 export type CollectionVisibility = "private" | "unlisted" | "public";
 export type CollectionKind = "folder" | "deck";
-export type DealStatus = "pending" | "confirmed" | "cancelled";
+export type DealStatus =
+  | "pending"
+  | "confirmed"
+  | "completed"
+  | "cancelled";
 
 export interface Database {
   public: {
@@ -325,6 +329,8 @@ export interface Database {
           buyer_note: string | null;
           cancelled_by: string | null;
           confirmed_at: string | null;
+          completed_at: string | null;
+          completed_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -444,6 +450,10 @@ export interface Database {
         Returns: string;
       };
       confirm_deal: {
+        Args: { p_deal_id: string };
+        Returns: undefined;
+      };
+      complete_deal: {
         Args: { p_deal_id: string };
         Returns: undefined;
       };

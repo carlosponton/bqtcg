@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { confirmDeal, startDeal } from "@/lib/deals/actions";
+import { completeDeal, confirmDeal, startDeal } from "@/lib/deals/actions";
 import type { MyDealForListing } from "@/lib/deals/query";
 import { Button } from "@/components/ui/button";
 
@@ -59,9 +59,9 @@ export function StartDeal({
       <div className="rounded-lg border p-4">
         <p className="text-sm font-medium">Concretar el trato</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Regístralo cuando quieran cerrar la compra o el cambio. Al confirmarlo
-          ambos, verán el WhatsApp del otro para coordinar y podrán dejarse una
-          reseña.
+          Regístralo para avanzar con la compra o el cambio. Cuando la otra
+          persona lo acepte, verán el WhatsApp del otro para coordinar; después
+          cierran el trato y se dejan una reseña.
         </p>
         {maxQty > 1 ? (
           <label className="mt-3 flex items-center gap-2 text-xs font-medium">
@@ -100,12 +100,34 @@ export function StartDeal({
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
         <p className="text-sm font-medium">
-          Trato confirmado ✓
+          Trato en curso
           {deal.quantity > 1 ? ` · ${deal.quantity} cartas` : ""}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Ambos confirmaron. Ya pueden ver el WhatsApp del otro (arriba) para
-          coordinar, y dejar una reseña desde{" "}
+          Ambos aceptaron. Ya pueden ver el WhatsApp del otro (arriba) para
+          coordinar la entrega. Cuando hayan hecho el intercambio, ciérrenlo.
+        </p>
+        <Button
+          size="sm"
+          className="mt-3"
+          disabled={pending}
+          onClick={() => run(() => completeDeal(deal.id))}
+        >
+          {pending ? "Cerrando…" : "Cerrar el trato"}
+        </Button>
+        {error ? (
+          <p className="mt-2 text-xs text-destructive">{error}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (deal.status === "completed") {
+    return (
+      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+        <p className="text-sm font-medium">Trato cerrado ✓</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Ya pueden dejarse una reseña desde{" "}
           <Link href="/panel/tratos" className="underline underline-offset-2">
             Tratos
           </Link>
@@ -121,12 +143,12 @@ export function StartDeal({
       {deal.iAmSeller && !deal.sellerConfirmed ? (
         <>
           <p className="text-sm font-medium">
-            La otra persona registró un trato por{" "}
+            Te propusieron un trato por{" "}
             {deal.quantity > 1 ? `${deal.quantity} de estas cartas` : "esta carta"}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Confírmalo si es correcto. Al confirmar, se descuenta esa cantidad
-            del anuncio.
+            Acéptalo si te interesa: se abrirá el WhatsApp de ambos para
+            coordinar. El anuncio se descuenta sólo al cerrar el trato.
           </p>
           <Button
             size="sm"
@@ -134,7 +156,7 @@ export function StartDeal({
             disabled={pending}
             onClick={() => run(() => confirmDeal(deal.id))}
           >
-            {pending ? "Confirmando…" : "Confirmar trato"}
+            {pending ? "Aceptando…" : "Aceptar el trato"}
           </Button>
         </>
       ) : (
