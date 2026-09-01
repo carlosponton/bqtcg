@@ -107,17 +107,23 @@ vive en `feat/rediseño-el-cambista`.)
   internacional), nunca precio sugerido; no se guarda en `listings`.
 - **Escaneo de carta con la cámara** (todo gratis, sin servidor de OCR): botón
   "Escanear con la cámara" en `CardPicker` (modo catálogo, no `locked`).
-  `CardScanner` toma una foto (`<input capture>`), la reduce a gris en un
-  canvas y corre **Tesseract.js** en el navegador (`import()` dinámico, ~4 MB
-  desde su CDN, sólo al usar el escáner) — `src/lib/ocr/scan-card.ts`
-  (`scanCard` + `parseCardText`: nombre, número `N/T`, total, sigla S&V).
-  Los campos son editables; `GET /api/cards/scan?name=&number=&total=&code=`
-  llama a `matchScannedCard()` (`src/lib/tcgdex.ts`), que cruza contra el
-  catálogo cacheado: filtra por `localId`, puntúa por total oficial del set
-  (`getSetsMap`, cache 6 h), sigla (`SV_SET_CODES`) y parecido de nombre.
-  Siempre muestra candidatas para confirmar; nunca elige solo. La foto no se
-  sube a ningún lado. `pnpm-workspace.yaml` marca `tesseract.js` como
-  `allowBuilds: false` (su postinstall es sólo un aviso de donación).
+  `CardScanner` toma una foto (`<input capture>`) y corre **Tesseract.js** en
+  el navegador (`import()` dinámico, ~4 MB desde su CDN, sólo al usar el
+  escáner) — `src/lib/ocr/scan-card.ts`. **Dos pasadas por zona** (recortadas y
+  ampliadas): `NAME_REGION` (banda superior, `PSM.SINGLE_BLOCK`) para el nombre
+  y `BOTTOM_REGION` (inferior izquierda, `PSM.SPARSE_TEXT`) para número `N/T`,
+  total y sigla S&V; `parseCardText(nameText, bottomText)` los separa. Las
+  fracciones de recorte son aproximadas (distribución fija de la carta), se
+  ajustan si hace falta. Los campos son editables; `GET
+  /api/cards/scan?name=&number=&total=&code=` llama a `matchScannedCard()`
+  (`src/lib/tcgdex.ts`): **ponderación, sin filtro duro** — cada carta del
+  catálogo cacheado suma por número exacto/dígitos/1-error (`digitsClose`),
+  total oficial del set (`getSetsMap`, cache 6 h), sigla (`SV_SET_CODES`) y
+  nombre (exacto/prefijo/substring/tokens/`trigramSim`). Así, si el OCR leyó
+  mal un campo, los otros dos igual sacan la carta al tope. Siempre muestra
+  candidatas para confirmar; nunca elige solo. La foto no se sube a ningún
+  lado. `pnpm-workspace.yaml` marca `tesseract.js` como `allowBuilds: false`
+  (su postinstall es sólo un aviso de donación).
 - Tipos en `src/types/database.ts` a mano (regenerar con `supabase gen types`).
 
 ## Roadmap

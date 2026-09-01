@@ -94,7 +94,8 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
       );
       setStage("review");
       setFields({
-        rawText: "",
+        nameText: "",
+        bottomText: "",
         name: null,
         number: null,
         setTotal: null,
