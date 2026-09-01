@@ -58,6 +58,18 @@ export type TcgSetBrief = {
   cardCount?: { total?: number; official?: number };
 };
 
+export type CardPriceUsd = {
+  /** Precio de mercado del acabado preferido, en USD. */
+  market: number;
+  /** Mín. y máx. del precio de mercado entre acabados (para señalar rango). */
+  min: number;
+  max: number;
+  /** Acabado del que sale `market`: normal, holofoil, reverse-holofoil… */
+  finish: string;
+  /** ISO date de la última actualización de TCGplayer, si viene. */
+  updatedAt: string | null;
+};
+
 function cardImage(
   base: string | null | undefined,
   quality: "low" | "high" = "high",
@@ -224,6 +236,76 @@ export async function getCard(id: string): Promise<TcgCardFull> {
           cardCount: card.set.cardCount,
         }
       : undefined,
+  };
+}
+
+// --- Precio de referencia (TCGplayer) -----------------------------------
+
+/** Orden de preferencia del acabado cuando una carta tiene varios. */
+const FINISH_PRIORITY = ["normal", "holofoil", "reverse-holofoil"];
+
+type TcgFinishPrice = {
+  marketPrice?: unknown;
+  midPrice?: unknown;
+  lowPrice?: unknown;
+};
+
+function priceNum(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : null;
+}
+
+/**
+ * Precio de referencia de TCGplayer (USD) para una carta del catálogo, o
+ * `null` si TCGdex no trae precios para ella. TCGdex expone `pricing.tcgplayer`
+ * (un sub-objeto por acabado) a nivel de carta y, a veces repetido, en cada
+ * `variants_detailed`; se juntan todos los acabados y se elige uno.
+ */
+export async function getCardPriceUsd(id: string): Promise<CardPriceUsd | null> {
+  const card = (await tcgdex.fetch("cards", id)) as
+    | {
+        pricing?: { tcgplayer?: unknown };
+        variants_detailed?: Array<{ pricing?: { tcgplayer?: unknown } }>;
+      }
+    | undefined;
+
+  const blocks = [
+    card?.pricing?.tcgplayer,
+    ...(card?.variants_detailed ?? []).map((v) => v.pricing?.tcgplayer),
+  ];
+
+  const byFinish = new Map<string, { price: number; updated: string | null }>();
+
+  for (const tp of blocks) {
+    if (!tp || typeof tp !== "object") continue;
+    const block = tp as Record<string, unknown>;
+    const updated = typeof block.updated === "string" ? block.updated : null;
+
+    for (const [finish, raw] of Object.entries(block)) {
+      if (finish === "unit" || finish === "updated") continue;
+      if (!raw || typeof raw !== "object") continue;
+      const p = raw as TcgFinishPrice;
+      const price =
+        priceNum(p.marketPrice) ?? priceNum(p.midPrice) ?? priceNum(p.lowPrice);
+      if (price == null || byFinish.has(finish)) continue;
+      byFinish.set(finish, { price, updated });
+    }
+  }
+
+  if (byFinish.size === 0) return null;
+
+  const prices = [...byFinish.values()].map((x) => x.price);
+  const finish =
+    FINISH_PRIORITY.find((f) => byFinish.has(f)) ?? [...byFinish.keys()][0];
+  const chosen = byFinish.get(finish)!;
+
+  return {
+    market: chosen.price,
+    min: Math.min(...prices),
+    max: Math.max(...prices),
+    finish,
+    updatedAt: chosen.updated,
   };
 }
 

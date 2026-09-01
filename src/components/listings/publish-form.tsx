@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createListing, type CreateListingInput } from "@/lib/listings/actions";
@@ -26,6 +26,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardPicker } from "@/components/cards/card-picker";
 import { CardThumb } from "@/components/cards/card-thumb";
 import { PhotoUploader } from "@/components/listings/photo-uploader";
+import { PriceHint } from "@/components/listings/price-hint";
 
 type FromCollection = {
   id: string;
@@ -71,6 +72,14 @@ export function PublishForm({
   const [files, setFiles] = useState<File[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Carta del catálogo elegida, para el precio de referencia de TCGplayer.
+  const [catalogCardId, setCatalogCardId] = useState<string | null>(
+    fromCollectionItem?.card_id ?? null,
+  );
+  const onCardSelect = useCallback(
+    (card: { id: string; name: string } | null) => setCatalogCardId(card?.id ?? null),
+    [],
+  );
 
   const isOffer = isDeck || kind === "offer";
 
@@ -236,6 +245,7 @@ export function PublishForm({
             defaultCardName={fromCollectionItem?.card_name ?? undefined}
             defaultImage={fromCollectionItem?.image_url ?? undefined}
             locked={Boolean(fromCollectionItem)}
+            onSelect={onCardSelect}
           />
         </div>
       ) : null}
@@ -311,23 +321,28 @@ export function PublishForm({
       </div>
 
       {isOffer && forSale ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="price_cop">Precio (COP)</Label>
-            <Input
-              id="price_cop"
-              name="price_cop"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={100}
-              placeholder="15000"
-            />
+        <div className="flex flex-col gap-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="price_cop">Precio (COP)</Label>
+              <Input
+                id="price_cop"
+                name="price_cop"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={100}
+                placeholder="15000"
+              />
+            </div>
+            <label className="flex items-end gap-2 pb-2 text-sm">
+              <input type="checkbox" name="price_negotiable" className="size-4" />
+              Precio negociable
+            </label>
           </div>
-          <label className="flex items-end gap-2 pb-2 text-sm">
-            <input type="checkbox" name="price_negotiable" className="size-4" />
-            Precio negociable
-          </label>
+          {!isDeck && catalogCardId ? (
+            <PriceHint cardId={catalogCardId} />
+          ) : null}
         </div>
       ) : null}
 
