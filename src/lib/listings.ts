@@ -48,6 +48,20 @@ export function languageLabel(value: string | null): string {
   return LANGUAGES.find((l) => l.value === value)?.label ?? value ?? "";
 }
 
+/** Sentinela en `listings.languages` para "cualquier idioma". */
+export const ANY_LANGUAGE = "any";
+
+/**
+ * Etiqueta para el (o los) idioma(s) de un anuncio. `["any"]` o vacío =
+ * "cualquier idioma"; 1–3 se listan; 4+ se resumen.
+ */
+export function languagesLabel(values: string[] | null | undefined): string {
+  const list = (values ?? []).filter((v) => v !== ANY_LANGUAGE);
+  if (list.length === 0) return "Cualquier idioma";
+  const labels = list.map(languageLabel);
+  return labels.length <= 3 ? labels.join(" · ") : `${labels.length} idiomas`;
+}
+
 export function conditionLabel(value: string | null): string {
   if (!value) return "";
   return CONDITIONS.find((c) => c.value === value)?.label ?? value;

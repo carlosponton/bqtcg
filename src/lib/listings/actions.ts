@@ -24,7 +24,8 @@ export type CreateListingInput = {
   custom_card_name?: string | null;
   card_name: string;
   card_image?: string | null;
-  language: string;
+  /** Idiomas del anuncio; array vacío = "cualquier idioma". */
+  languages: string[];
   condition?: string | null;
   quantity: number;
   price_cop?: number | null;
@@ -54,7 +55,7 @@ const schema = z
     custom_card_name: z.string().trim().max(120).nullish(),
     card_name: z.string().trim().max(160).default(""),
     card_image: z.string().trim().nullish(),
-    language: z.enum(LANG).catch("es"),
+    languages: z.array(z.enum(LANG)).max(8).default([]),
     condition: z.union([z.enum(COND), z.literal(""), z.null()]).optional(),
     quantity: z.coerce.number().int().min(1).max(999).catch(1),
     price_cop: z.coerce.number().int().min(0).max(99_999_999).nullish(),
@@ -160,7 +161,7 @@ export async function createListing(
     card_name: resolved.card_name,
     set_name: resolved.set_name,
     image_url: resolved.image_url,
-    language: v.language,
+    languages: v.languages.length ? [...new Set(v.languages)] : ["any"],
     condition: v.condition || null,
     quantity: isDeck ? 1 : v.quantity,
     price_cop: forSale ? (v.price_cop ?? null) : null,
@@ -362,7 +363,7 @@ const editSchema = z
     kind: z.enum(["offer", "want"]),
     for_sale: z.boolean(),
     for_trade: z.boolean(),
-    language: z.enum(LANG).catch("es"),
+    languages: z.array(z.enum(LANG)).max(8).default([]),
     condition: z.union([z.enum(COND), z.literal("")]).default(""),
     quantity: z.coerce.number().int().min(1).max(999).catch(1),
     price_cop: z.coerce.number().int().min(0).max(99_999_999).nullish(),
@@ -388,7 +389,10 @@ export async function updateListing(
     kind: String(formData.get("kind") ?? ""),
     for_sale: formData.get("for_sale") === "on",
     for_trade: formData.get("for_trade") === "on",
-    language: String(formData.get("language") ?? "es"),
+    languages:
+      formData.get("any_language") === "on"
+        ? []
+        : formData.getAll("languages").map(String),
     condition: String(formData.get("condition") ?? ""),
     quantity: formData.get("quantity"),
     price_cop: formData.get("price_cop") || null,
@@ -421,7 +425,7 @@ export async function updateListing(
   const patch: ListingUpdate = {
     for_sale: forSale,
     for_trade: forTrade,
-    language: v.language,
+    languages: v.languages.length ? [...new Set(v.languages)] : ["any"],
     condition: v.condition || null,
     quantity: v.quantity,
     price_cop: forSale ? (v.price_cop ?? null) : null,

@@ -14,7 +14,7 @@ export type ListingListItem = {
   card_name: string;
   set_name: string | null;
   image: string | null;
-  language: string;
+  languages: string[];
   condition: string | null;
   price_cop: number | null;
   price_negotiable: boolean;
@@ -26,7 +26,7 @@ export type ListingListItem = {
 };
 
 const LISTING_COLS =
-  "id, user_id, kind, format, for_sale, for_trade, card_name, set_name, image_url, language, condition, price_cop, price_negotiable, trade_for, city, status, bumped_at, listing_photos(storage_path, sort_order)";
+  "id, user_id, kind, format, for_sale, for_trade, card_name, set_name, image_url, languages, condition, price_cop, price_negotiable, trade_for, city, status, bumped_at, listing_photos(storage_path, sort_order)";
 
 type ListingRowWithPhotos = {
   id: string;
@@ -38,7 +38,7 @@ type ListingRowWithPhotos = {
   card_name: string;
   set_name: string | null;
   image_url: string | null;
-  language: string;
+  languages: string[] | null;
   condition: string | null;
   price_cop: number | null;
   price_negotiable: boolean;
@@ -73,7 +73,7 @@ function shape(
     card_name: row.card_name,
     set_name: row.set_name,
     image: firstPhotoUrl(row),
-    language: row.language,
+    languages: row.languages ?? [],
     condition: row.condition,
     price_cop: row.price_cop,
     price_negotiable: row.price_negotiable,
@@ -136,7 +136,10 @@ export async function searchListings(
   if (params.format) query = query.eq("format", params.format);
 
   if (params.city) query = query.eq("city", params.city);
-  if (params.language) query = query.eq("language", params.language);
+  if (params.language) {
+    // Los anuncios "cualquier idioma" (`{any}`) salen en cualquier filtro.
+    query = query.or(`languages.cs.{${params.language}},languages.cs.{any}`);
+  }
   if (params.condition) query = query.eq("condition", params.condition);
   if (params.priceMin != null) query = query.gte("price_cop", params.priceMin);
   if (params.priceMax != null) query = query.lte("price_cop", params.priceMax);

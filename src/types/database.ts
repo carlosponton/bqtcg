@@ -237,7 +237,7 @@ export interface Database {
           card_name: string;
           set_name: string | null;
           image_url: string | null;
-          language: string;
+          languages: string[];
           condition: string | null;
           quantity: number;
           price_cop: number | null;
@@ -256,7 +256,7 @@ export interface Database {
           for_trade?: boolean;
           card_name?: string;
           set_name?: string | null;
-          language?: string;
+          languages?: string[];
           condition?: string | null;
           quantity?: number;
           price_cop?: number | null;

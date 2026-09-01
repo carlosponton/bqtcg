@@ -66,6 +66,14 @@ vive en `feat/rediseño-el-cambista`.)
   — `revoke insert` directo; la RPC exige ≥1 foto para todo `offer` y precio si
   `for_sale`. `source_collection_item_id` liga con la colección. Detalle en
   `/anuncio/[id]`. Etiqueta de UI vía `listingModeLabel()` ("Venta o cambio", …).
+  **`listings.languages text[]`** (migraciones `20260914000000..001`): varios
+  idiomas o "cualquier idioma" (sentinela `["any"]`, `ANY_LANGUAGE` en
+  `@/lib/listings`) — antes era un solo `language` y la gente duplicaba el
+  anuncio. `LanguageMultiPicker` (checkboxes nativos `name="languages"` +
+  `name="any_language"`) en publicar y editar; `languagesLabel()` en las
+  tarjetas y el detalle. Filtro `?idioma=` de `/explorar`: un `want`/`offer` en
+  ese idioma **o** `{any}` (`languages.cs.{X},languages.cs.{any}` en
+  `listings/query.ts`). `collection_items.language` sigue siendo un solo idioma.
 - **Fotos**: bucket `listing-photos` (público). Se comprimen a webp en el
   navegador (`browser-image-compression`) y se suben por el route handler
   **`/api/listings/photos`** (`POST` multipart → `{path}`, `DELETE` `{paths}`).
