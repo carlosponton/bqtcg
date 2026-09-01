@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getMyDealForListing } from "@/lib/deals/query";
+import { findCollectionMatches } from "@/lib/collection/query";
 import { SITE_NAME } from "@/lib/site";
 import {
   conditionLabel,
@@ -17,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardThumb } from "@/components/cards/card-thumb";
+import { CollectionMatchCallout } from "@/components/collection/collection-match-callout";
 import { StartDeal } from "@/components/deals/start-deal";
 import { ReportDialog } from "@/components/reports/report-dialog";
 import type { Listing } from "@/types/database";
@@ -35,10 +37,17 @@ async function loadListing(id: string) {
 
   if (!listing || listing.status === "removed") return null;
 
-  const myDeal =
-    user && user.id !== listing.user_id
-      ? await getMyDealForListing(user.id, id)
-      : null;
+  const isViewerAudience = Boolean(user) && user!.id !== listing.user_id;
+
+  const [myDeal, collectionMatches] = await Promise.all([
+    isViewerAudience ? getMyDealForListing(user!.id, id) : null,
+    isViewerAudience && listing.kind === "want"
+      ? findCollectionMatches(user!.id, {
+          card_id: listing.card_id,
+          card_name: listing.card_name,
+        })
+      : [],
+  ]);
 
   const [{ data: photos }, { data: owner }] = await Promise.all([
     supabase
@@ -61,6 +70,7 @@ async function loadListing(id: string) {
     owner,
     viewer: user,
     myDeal,
+    collectionMatches,
   };
 }
 
@@ -100,7 +110,7 @@ export default async function AnuncioPage({
   const data = await loadListing(id);
   if (!data) notFound();
 
-  const { listing, photos, owner, viewer, myDeal } = data;
+  const { listing, photos, owner, viewer, myDeal, collectionMatches } = data;
   const isOwner = viewer?.id === listing.user_id;
   const ownerName =
     owner?.display_name || owner?.username || "Usuario";
@@ -160,6 +170,10 @@ export default async function AnuncioPage({
               <p className="text-sm text-muted-foreground">{listing.set_name}</p>
             ) : null}
           </div>
+
+          {collectionMatches.length > 0 ? (
+            <CollectionMatchCallout matches={collectionMatches} />
+          ) : null}
 
           {listing.for_sale && listing.price_cop ? (
             <p className="text-xl font-semibold">
