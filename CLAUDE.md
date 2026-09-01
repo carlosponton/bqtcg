@@ -108,15 +108,19 @@ vive en `feat/rediseño-el-cambista`.)
 - **Escaneo de carta con la cámara** (todo gratis, sin servidor de OCR): botón
   "Escanear con la cámara" en `CardPicker` (modo catálogo, no `locked`).
   Vía normal — **`CardLiveCapture`** (`src/components/cards/`): cámara en vivo
-  (`getUserMedia`, `facingMode: environment`) en un visor con `aspect-ratio`
-  de carta (2.5:3.5) + `object-fit: cover` y una guía dibujada; el usuario
-  encaja la carta y toca "Capturar". Como el visor ES el recorte,
-  `videoFrameToCardCanvas()` (mismo `object-fit: cover` que la vista) devuelve
-  exactamente lo que se veía dentro de la guía — sin ajustes a mano. Respaldo
-  — **`CardAlignCrop`**: si `getUserMedia` falla o el usuario elige "subir
-  foto", toma una foto (`<input capture>`) y arrastra/redimensiona un recuadro
-  con la proporción de carta sobre ella. Ambas vías producen el mismo canvas
-  limpio de 1000 px de ancho (proporción de carta) que alimenta `scanCard()`.
+  (`getUserMedia`, `facingMode: environment`, se pide `2560×1440` ideal) en un
+  visor con `aspect-ratio` de carta (2.5:3.5) + `object-fit: cover` y una guía
+  dibujada; el usuario encaja la carta y toca "Capturar". La captura usa
+  `ImageCapture.takePhoto()` a resolución de sensor cuando existe
+  (Chrome/Android) y encaja con el encuadre del preview; si no, el frame del
+  `<video>`. `frameToCardCanvas()` recorta con el mismo `object-fit: cover`
+  que la vista → lo que se veía en la guía es lo que se lee, sin ajustes a
+  mano. Respaldo — **`CardAlignCrop`**: si `getUserMedia` falla o el usuario
+  elige "subir foto", toma una foto (`<input capture>`, resolución nativa del
+  teléfono) y arrastra/redimensiona un recuadro con la proporción de carta.
+  Ambas vías producen un canvas de proporción de carta a la resolución nativa
+  del recorte (hasta 2400 px de ancho — a baja resolución el OCR no leía el
+  número) que alimenta `scanCard()`.
   `src/lib/ocr/scan-card.ts` corre **Tesseract.js** en el navegador (`import()`
   dinámico, ~4 MB desde su CDN, sólo al usar el escáner), **dos pasadas por
   zona** sobre ese recorte ya alineado (recortadas de nuevo y ampliadas):

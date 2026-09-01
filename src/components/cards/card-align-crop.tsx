@@ -102,13 +102,18 @@ export function CardAlignCrop({ file, onConfirm, onCancel }: Props) {
     const sw = rect.w * bmp.width;
     const sh = rect.h * bmp.height;
 
-    const outW = 1000;
+    // Sigue la resolución nativa del recorte (hasta 2400 px) en vez de fijar
+    // un ancho bajo: si no, la banda del número queda ilegible para el OCR.
+    const outW = Math.round(Math.min(2400, Math.max(1200, sw)));
     const outH = Math.round(outW / CARD_RATIO);
     const canvas = document.createElement("canvas");
     canvas.width = outW;
     canvas.height = outH;
     const ctx = canvas.getContext("2d");
-    ctx?.drawImage(bmp, sx, sy, sw, sh, 0, 0, outW, outH);
+    if (ctx) {
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, outW, outH);
+    }
     bmp.close?.();
 
     onConfirm(canvas);
