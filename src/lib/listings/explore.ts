@@ -32,6 +32,7 @@ export type ExploreParams = {
   q: string;
   mode: ExploreMode | null;
   format: ExploreFormat | null;
+  city: string | null;
   language: string | null;
   condition: string | null;
   priceMin: number | null;
@@ -65,6 +66,7 @@ export function parseExploreParams(sp: RawSearchParams): ExploreParams {
     format: EXPLORE_FORMATS.some((f) => f.value === formatRaw)
       ? (formatRaw as ExploreFormat)
       : null,
+    city: one(sp.ciudad).slice(0, 60) || null,
     language: one(sp.idioma) || null,
     condition: one(sp.estado) || null,
     priceMin: toPositiveInt(one(sp.precio_min)),
@@ -82,6 +84,7 @@ export function hasActiveFilters(p: ExploreParams): boolean {
     p.q ||
       p.mode ||
       p.format ||
+      p.city ||
       p.language ||
       p.condition ||
       p.priceMin != null ||
@@ -97,6 +100,7 @@ export function exploreParamsToQuery(
   if (p.q) qs.set("q", p.q);
   if (p.mode) qs.set("modo", p.mode);
   if (p.format) qs.set("formato", p.format);
+  if (p.city) qs.set("ciudad", p.city);
   if (p.language) qs.set("idioma", p.language);
   if (p.condition) qs.set("estado", p.condition);
   if (p.priceMin != null) qs.set("precio_min", String(p.priceMin));

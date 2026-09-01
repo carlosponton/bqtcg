@@ -135,6 +135,7 @@ export async function searchListings(
 
   if (params.format) query = query.eq("format", params.format);
 
+  if (params.city) query = query.eq("city", params.city);
   if (params.language) query = query.eq("language", params.language);
   if (params.condition) query = query.eq("condition", params.condition);
   if (params.priceMin != null) query = query.gte("price_cop", params.priceMin);
