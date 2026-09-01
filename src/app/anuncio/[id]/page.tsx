@@ -130,11 +130,12 @@ export default async function AnuncioPage({
   const isOwner = viewer?.id === listing.user_id;
   const ownerName =
     owner?.display_name || owner?.username || "Usuario";
+  const ownerSharesWhatsapp =
+    !isOwner && owner?.show_whatsapp === true && Boolean(owner?.whatsapp);
+  // El WhatsApp se revela sólo cuando ambas partes confirmaron el trato.
+  const dealConfirmed = myDeal?.status === "confirmed";
   const canContactWhatsapp =
-    Boolean(viewer) &&
-    !isOwner &&
-    owner?.show_whatsapp === true &&
-    Boolean(owner?.whatsapp);
+    Boolean(viewer) && ownerSharesWhatsapp && dealConfirmed;
 
   const modeLabel = listingModeLabel(listing);
   const waMessage = `Hola, te escribo por tu anuncio en ${SITE_NAME}: "${listing.card_name}" (${modeLabel}).`;
@@ -299,6 +300,16 @@ export default async function AnuncioPage({
               <p className="mt-3 text-sm text-muted-foreground">
                 Este es tu anuncio.
               </p>
+            ) : !viewer ? (
+              <Button asChild className="mt-3 w-full" variant="outline">
+                <Link href={`/login?redirect=/anuncio/${listing.id}`}>
+                  Inicia sesión para ver el contacto
+                </Link>
+              </Button>
+            ) : !ownerSharesWhatsapp ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Este usuario no compartió WhatsApp. Mira su perfil.
+              </p>
             ) : canContactWhatsapp ? (
               <Button asChild className="mt-3 w-full">
                 <a
@@ -309,15 +320,10 @@ export default async function AnuncioPage({
                   Contactar por WhatsApp
                 </a>
               </Button>
-            ) : !viewer ? (
-              <Button asChild className="mt-3 w-full" variant="outline">
-                <Link href={`/login?redirect=/anuncio/${listing.id}`}>
-                  Inicia sesión para ver el contacto
-                </Link>
-              </Button>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                Este usuario no compartió WhatsApp. Mira su perfil.
+                Verás el WhatsApp cuando tú y quien publica confirmen el trato,
+                aquí abajo.
               </p>
             )}
           </div>

@@ -136,6 +136,11 @@ vive en `feat/rediseño-el-cambista`.)
   home / `/explorar` / perfil público; el vendedor lo reactiva desde `/panel`.
   `StartDeal` oculta el CTA "registrar el trato" si el anuncio está
   `closed`/`reserved`, y `confirmDeal` revalida `/`, `/explorar` y el detalle.
+  El **WhatsApp del otro sólo se revela con un trato `confirmed` entre ambos**
+  (no basta con tener sesión): en `/anuncio/[id]` mira `myDeal.status`, en
+  `/u/[username]` usa `hasConfirmedDealWith(viewerId, ownerId)` en
+  `src/lib/deals/query.ts` (cualquier rol). Sin trato confirmado el `<a>` de
+  WhatsApp no se renderiza (no llega al HTML). Sin cambios de esquema.
 - Fase 2 slice 2 (hecha): `reviews` — cada parte de un `deal` `confirmed` deja
   una reseña (1–5 + comentario) de la otra. INSERT/UPDATE/DELETE por RLS (el
   `with check` valida que el trato esté confirmado y que `reviewee_id` sea la

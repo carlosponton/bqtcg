@@ -7,6 +7,7 @@ import { Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_NAME } from "@/lib/site";
 import { whatsappLink } from "@/lib/listings";
+import { hasConfirmedDealWith } from "@/lib/deals/query";
 import { listUserListings } from "@/lib/listings/query";
 import { getReviewsForUser } from "@/lib/reviews/query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,10 +41,13 @@ async function loadProfile(username: string) {
 
   if (!profile || !profile.onboarding_completed) return null;
 
-  const [listings, collectionsRes, reviews] = await Promise.all([
+  const [listings, collectionsRes, reviews, dealConfirmed] = await Promise.all([
     listUserListings(profile.id),
     supabase.rpc("get_public_collections", { p_username: username }),
     getReviewsForUser(profile.id),
+    viewer && viewer.id !== profile.id
+      ? hasConfirmedDealWith(viewer.id, profile.id)
+      : Promise.resolve(false),
   ]);
 
   return {
@@ -52,6 +56,7 @@ async function loadProfile(username: string) {
     listings,
     collections: (collectionsRes.data ?? []) as unknown as PublicCollection[],
     reviews,
+    dealConfirmed,
   };
 }
 
@@ -79,7 +84,8 @@ export default async function PublicProfilePage({
   const data = await loadProfile(username);
   if (!data) notFound();
 
-  const { viewer, profile, listings, collections, reviews } = data;
+  const { viewer, profile, listings, collections, reviews, dealConfirmed } =
+    data;
   const name = profile.display_name || profile.username || "Jugador";
   const initials = name.slice(0, 2).toUpperCase();
   const isSelf = viewer?.id === profile.id;
@@ -87,11 +93,10 @@ export default async function PublicProfilePage({
   const offers = listings.filter((l) => l.kind === "offer");
   const wants = listings.filter((l) => l.kind === "want");
 
-  const canContactWhatsapp =
-    Boolean(viewer) &&
-    !isSelf &&
-    profile.show_whatsapp === true &&
-    Boolean(profile.whatsapp);
+  const sharesWhatsapp =
+    !isSelf && profile.show_whatsapp === true && Boolean(profile.whatsapp);
+  // El WhatsApp se revela sólo tras un trato confirmado por ambas partes.
+  const canContactWhatsapp = Boolean(viewer) && sharesWhatsapp && dealConfirmed;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -165,6 +170,10 @@ export default async function PublicProfilePage({
                 Inicia sesión para contactar
               </Link>
             </Button>
+          ) : sharesWhatsapp ? (
+            <span className="self-center text-xs text-muted-foreground">
+              WhatsApp tras un trato confirmado
+            </span>
           ) : null}
           {viewer && !isSelf ? (
             <ReportDialog targetType="user" targetId={profile.id} />
