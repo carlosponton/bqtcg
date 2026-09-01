@@ -142,6 +142,22 @@ async function dealRpc(
 
   revalidatePath("/panel/tratos");
   revalidatePath("/panel");
+
+  // Confirmar un trato cierra el anuncio de origen (trigger
+  // `deals_close_listing`): refresca los feeds públicos y el detalle.
+  if (fn === "confirm_deal") {
+    const { data: d } = await supabase
+      .from("deals")
+      .select("listing_id, status")
+      .eq("id", dealId)
+      .maybeSingle();
+    if (d?.status === "confirmed") {
+      revalidatePath("/");
+      revalidatePath("/explorar");
+      if (d.listing_id) revalidatePath(`/anuncio/${d.listing_id}`);
+    }
+  }
+
   return { ok: true };
 }
 
