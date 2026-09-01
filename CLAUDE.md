@@ -94,6 +94,17 @@ vive en `feat/rediseño-el-cambista`.)
   Override con `TCGDEX_ENDPOINT` en `.env.local` (p. ej. volver a
   `https://api.tcgdex.net/v2` cuando el principal se recupere). Las imágenes
   vienen siempre de `assets.tcgdex.net` (no hay mirror de assets).
+- **Precio de referencia (TCGplayer)**: TCGdex reexpone precios en
+  `variants_detailed[].pricing.tcgplayer` (sub-objeto por acabado). El SDK no
+  los tipa pero `tcgdex.fetch("cards", id)` devuelve el JSON crudo.
+  `getCardPriceUsd()` (`src/lib/tcgdex.ts`) junta los acabados y elige uno
+  (`normal` → `holofoil` → `reverse-holofoil` → primero); `getUsdToCop()`
+  (`src/lib/fx.ts`, open.er-api.com sin key, cache 12 h, respaldo
+  `FX_COP_PER_USD`) convierte. Ruta `GET /api/cards/price?id=` → `{ available,
+  cop:{market,min,max}, finish, updatedAt }`. `PriceHint` lo pinta bajo el
+  campo de precio en `PublishForm` (sólo `offer` + `for_sale` + carta del
+  catálogo; `CardPicker` avisa con `onSelect`). Es orientativo (mercado
+  internacional), nunca precio sugerido; no se guarda en `listings`.
 - Tipos en `src/types/database.ts` a mano (regenerar con `supabase gen types`).
 
 ## Roadmap

@@ -45,6 +45,8 @@ export type CardPickerProps = {
   userId?: string;
   /** Bloquea el cambio de carta (ej. al publicar desde la colección). */
   locked?: boolean;
+  /** Se llama con la carta del catálogo elegida (o `null` en modo a mano). */
+  onSelect?: (card: { id: string; name: string } | null) => void;
 };
 
 /**
@@ -62,6 +64,7 @@ export function CardPicker({
   defaultImage,
   userId,
   locked = false,
+  onSelect,
 }: CardPickerProps) {
   const [mode, setMode] = useState<"catalog" | "custom">(
     defaultCustomName ? "custom" : "catalog",
@@ -116,6 +119,15 @@ export function CardPicker({
       .finally(() => setLoading(false));
     return () => controller.abort();
   }, [active, debounced]);
+
+  // Avisa al padre de la carta del catálogo elegida (o null en modo a mano).
+  useEffect(() => {
+    onSelect?.(
+      mode === "catalog" && selected
+        ? { id: selected.id, name: selected.name }
+        : null,
+    );
+  }, [mode, selected, onSelect]);
 
   // No mostramos resultados obsoletos cuando la búsqueda no está activa.
   const shownResults = active ? results : [];
