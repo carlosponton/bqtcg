@@ -66,6 +66,14 @@ vive en `feat/rediseño-el-cambista`.)
   — `revoke insert` directo; la RPC exige ≥1 foto para todo `offer` y precio si
   `for_sale`. `source_collection_item_id` liga con la colección. Detalle en
   `/anuncio/[id]`. Etiqueta de UI vía `listingModeLabel()` ("Venta o cambio", …).
+  **`listings.languages text[]`** (migraciones `20260914000000..001`): varios
+  idiomas o "cualquier idioma" (sentinela `["any"]`, `ANY_LANGUAGE` en
+  `@/lib/listings`) — antes era un solo `language` y la gente duplicaba el
+  anuncio. `LanguageMultiPicker` (checkboxes nativos `name="languages"` +
+  `name="any_language"`) en publicar y editar; `languagesLabel()` en las
+  tarjetas y el detalle. Filtro `?idioma=` de `/explorar`: un `want`/`offer` en
+  ese idioma **o** `{any}` (`languages.cs.{X},languages.cs.{any}` en
+  `listings/query.ts`). `collection_items.language` sigue siendo un solo idioma.
 - **Fotos**: bucket `listing-photos` (público). Se comprimen a webp en el
   navegador (`browser-image-compression`) y se suben por el route handler
   **`/api/listings/photos`** (`POST` multipart → `{path}`, `DELETE` `{paths}`).
@@ -76,9 +84,15 @@ vive en `feat/rediseño-el-cambista`.)
   se pasa a `create_listing`. Helper `src/lib/listings/photo-upload.ts`
   (`uploadListingPhotos` / `removeStoragePhotos`).
 - **Catálogo TCGdex** (`src/lib/tcgdex.ts`, `server-only`): usa el **SDK oficial
-  `@tcgdex/sdk`** (`new TCGdex('es')` + `setEndpoint(...)`, singleton).
-  `searchCards` baja la lista completa de cartas una vez (cache 6 h en memoria) y
-  filtra en el servidor. `/api/cards/search` es la ruta. Se **excluyen** las
+  `@tcgdex/sdk`** (`setEndpoint(...)`, un cliente memoizado por idioma).
+  `getAllCards(lang)` baja la lista completa de cartas **por idioma** (cache 6 h
+  en memoria por idioma). **`searchCards(q)` busca en TODOS los idiomas de
+  `SEARCH_LANGS`** (`es`/`en`/`pt`/`fr`/`de`/`it` — comparten numeración de
+  sets; el japonés no) contra un índice normalizado por idioma (`getSearchIndex`,
+  cache 6 h), junta por `card_id` y devuelve **el nombre canónico en español**;
+  descarta las cartas que no están en el catálogo ES. Así "Wally" y "Blasco"
+  encuentran la misma carta sin que el usuario elija idioma. `resolveCard` la
+  confirma por `card_id`. `/api/cards/search?q=`. Se **excluyen** las
   series de `EXCLUDED_SERIE_IDS` (`tcgp` = Pokémon TCG Pocket): `getExcludedSetIds`
   baja los sets de esas series (cache 6 h; reserva por regex `POCKET_ID_RE`) y
   `getAllCards` los filtra por prefijo de `card.id`. El emparejamiento usa

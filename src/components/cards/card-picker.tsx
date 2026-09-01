@@ -246,7 +246,7 @@ export function CardPicker({
                 <CommandInput
                   value={query}
                   onValueChange={setQuery}
-                  placeholder="Ej. Charizard ex…"
+                  placeholder="Nombre en español, inglés, francés…"
                 />
                 <CommandList className="max-h-[min(60vh,26rem)]">
                   {loading ? (

@@ -10,7 +10,7 @@ import { SITE_NAME } from "@/lib/site";
 import {
   conditionLabel,
   formatCOP,
-  languageLabel,
+  languagesLabel,
   listingModeLabel,
   listingPhotoUrl,
   whatsappLink,
@@ -220,8 +220,12 @@ export default async function AnuncioPage({
           ) : null}
 
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">Idioma</dt>
-            <dd>{languageLabel(listing.language)}</dd>
+            <dt className="text-muted-foreground">
+              {listing.languages.filter((l) => l !== "any").length > 1
+                ? "Idiomas"
+                : "Idioma"}
+            </dt>
+            <dd>{languagesLabel(listing.languages)}</dd>
             {listing.condition ? (
               <>
                 <dt className="text-muted-foreground">Estado</dt>

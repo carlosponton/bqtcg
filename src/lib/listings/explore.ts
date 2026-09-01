@@ -3,6 +3,8 @@
  * de la página y el componente cliente de filtros). Sin acceso a base de datos.
  */
 
+import { LANGUAGES } from "@/lib/listings";
+
 export const PAGE_SIZE = 24;
 
 export const EXPLORE_MODES = [
@@ -67,7 +69,9 @@ export function parseExploreParams(sp: RawSearchParams): ExploreParams {
       ? (formatRaw as ExploreFormat)
       : null,
     city: one(sp.ciudad).slice(0, 60) || null,
-    language: one(sp.idioma) || null,
+    language: LANGUAGES.some((l) => l.value === one(sp.idioma))
+      ? one(sp.idioma)
+      : null,
     condition: one(sp.estado) || null,
     priceMin: toPositiveInt(one(sp.precio_min)),
     priceMax: toPositiveInt(one(sp.precio_max)),

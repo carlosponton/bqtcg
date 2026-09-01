@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 
 import { updateListing, type EditListingState } from "@/lib/listings/actions";
-import { LANGUAGES, CONDITIONS } from "@/lib/listings";
+import { CONDITIONS } from "@/lib/listings";
 import type { Listing } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CardThumb } from "@/components/cards/card-thumb";
+import { LanguageMultiPicker } from "@/components/listings/language-multi-picker";
 
 const SELECT =
   "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -27,7 +28,7 @@ type Props = {
     | "card_name"
     | "set_name"
     | "image_url"
-    | "language"
+    | "languages"
     | "condition"
     | "quantity"
     | "price_cop"
@@ -146,23 +147,9 @@ export function EditListingForm({ listing }: Props) {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="language">Idioma</Label>
-          <select
-            id="language"
-            name="language"
-            defaultValue={listing.language}
-            className={SELECT}
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <LanguageMultiPicker defaultLanguages={listing.languages} />
 
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="condition">Estado</Label>
           <select

@@ -4,7 +4,7 @@ import {
   conditionLabel,
   DECK_LABEL,
   formatCOP,
-  languageLabel,
+  languagesLabel,
   listingModeLabel,
 } from "@/lib/listings";
 import type { ListingListItem } from "@/lib/listings/query";
@@ -62,7 +62,7 @@ export function ListingCard({ item }: { item: ListingListItem }) {
           )}
 
           <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
-            {languageLabel(item.language)}
+            {languagesLabel(item.languages)}
             {item.condition ? ` · ${conditionLabel(item.condition).split(" ")[0]}` : ""}
             {" · "}
             {item.city}

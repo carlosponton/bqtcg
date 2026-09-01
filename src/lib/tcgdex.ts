@@ -4,6 +4,7 @@ import TCGdex, {
   type Card as TcgApiCard,
   type CardResume as TcgApiCardResume,
   type SetResume as TcgApiSetResume,
+  type SupportedLanguages,
 } from "@tcgdex/sdk";
 
 /**
@@ -21,8 +22,35 @@ import TCGdex, {
 const ENDPOINT =
   process.env.TCGDEX_ENDPOINT || "https://api.eu1.tcgdex.net/v2";
 
-const tcgdex = new TCGdex("es");
-tcgdex.setEndpoint(ENDPOINT);
+/**
+ * Idiomas en los que se puede buscar el nombre de una carta.
+ * clave = valor de `LANGUAGES` (`@/lib/listings`); valor = código de TCGdex.
+ * Muchos nombres cambian según el idioma, así que quien no sepa el nombre en
+ * español puede buscar en inglés, japonés, etc.
+ */
+export const SEARCH_LANGS: Record<string, SupportedLanguages> = {
+  es: "es",
+  en: "en",
+  pt: "pt",
+  fr: "fr",
+  de: "de",
+  it: "it",
+};
+
+/** Un cliente TCGdex por idioma (baratos; el SDK cachea por URL, que lleva el idioma). */
+const clients = new Map<string, TCGdex>();
+function client(tcgLang: SupportedLanguages): TCGdex {
+  let c = clients.get(tcgLang);
+  if (!c) {
+    c = new TCGdex(tcgLang);
+    c.setEndpoint(ENDPOINT);
+    clients.set(tcgLang, c);
+  }
+  return c;
+}
+
+/** Cliente por defecto (español) para todo lo que no depende del idioma de búsqueda. */
+const tcgdex = client("es");
 
 export type TcgCardBrief = {
   id: string;
@@ -106,8 +134,12 @@ const POCKET_ID_RE = /^(a\d|b\d|p-a)/i;
 
 type TcgSerieFull = { id: string; name: string; sets?: { id: string }[] };
 
-let listCache: { at: number; cards: TcgApiCardResume[] } | null = null;
-let listInflight: Promise<TcgApiCardResume[]> | null = null;
+// Lista completa de cartas por código de idioma de TCGdex (cache 6 h c/u).
+const listCache = new Map<
+  string,
+  { at: number; cards: TcgApiCardResume[] }
+>();
+const listInflight = new Map<string, Promise<TcgApiCardResume[]>>();
 
 let excludedSetsCache: { at: number; ids: Set<string> } | null = null;
 let excludedSetsInflight: Promise<Set<string>> | null = null;
@@ -166,28 +198,65 @@ function isExcludedCard(cardId: string, excludedSets: Set<string>): boolean {
   return POCKET_ID_RE.test(cardId); // no cargaron las series: usa el patrón
 }
 
-async function getAllCards(): Promise<TcgApiCardResume[]> {
-  if (listCache && Date.now() - listCache.at < LIST_TTL_MS) {
-    return listCache.cards;
-  }
-  if (!listInflight) {
-    listInflight = Promise.all([tcgdex.fetch("cards"), getExcludedSetIds()])
+async function getAllCards(uiLang = "es"): Promise<TcgApiCardResume[]> {
+  const tcgLang = SEARCH_LANGS[uiLang] ?? "es";
+
+  const cached = listCache.get(tcgLang);
+  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.cards;
+
+  let inflight = listInflight.get(tcgLang);
+  if (!inflight) {
+    inflight = Promise.all([client(tcgLang).fetch("cards"), getExcludedSetIds()])
       .then(([cards, excludedSets]) => {
-        const list = (cards ?? []).filter(
+        const list = ((cards ?? []) as TcgApiCardResume[]).filter(
           (card) => !isExcludedCard(card.id, excludedSets),
         );
-        listCache = { at: Date.now(), cards: list };
+        listCache.set(tcgLang, { at: Date.now(), cards: list });
         return list;
       })
       .finally(() => {
-        listInflight = null;
+        listInflight.delete(tcgLang);
       });
+    listInflight.set(tcgLang, inflight);
   }
-  return listInflight;
+  return inflight;
 }
 
-// --- API pública del módulo ---------------------------------------------
+// --- Búsqueda de cartas (multi-idioma) ---------------------------------
 
+/** Índice `{id, nombre normalizado}` por idioma, para no normalizar en cada búsqueda. */
+const searchIdxCache = new Map<
+  string,
+  { at: number; entries: { id: string; norm: string }[] }
+>();
+
+async function getSearchIndex(
+  uiLang: string,
+): Promise<{ id: string; norm: string }[]> {
+  const tcgLang = SEARCH_LANGS[uiLang] ?? "es";
+  const cached = searchIdxCache.get(tcgLang);
+  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.entries;
+
+  const cards = await getAllCards(uiLang);
+  const entries = cards.map((c) => ({ id: c.id, norm: normalize(c.name) }));
+  searchIdxCache.set(tcgLang, { at: Date.now(), entries });
+  return entries;
+}
+
+function nameScore(norm: string, q: string): number {
+  if (!norm.includes(q)) return -1;
+  if (norm === q) return 0;
+  if (norm.startsWith(q)) return 1;
+  if (norm.includes(` ${q}`)) return 2;
+  return 3;
+}
+
+/**
+ * Busca una carta por su nombre en CUALQUIERA de los idiomas de `SEARCH_LANGS`
+ * (así "Wally" y "Blasco" encuentran la misma carta) y devuelve el resultado
+ * con el nombre canónico en español. `resolveCard` luego lo confirma por
+ * `card_id`, que es independiente del idioma.
+ */
 export async function searchCards(
   query: string,
   limit = 20,
@@ -195,29 +264,49 @@ export async function searchCards(
   const q = normalize(query);
   if (q.length < 2) return [];
 
-  const all = await getAllCards();
-  const matches: { card: TcgApiCardResume; score: number }[] = [];
+  const uiLangs = Object.keys(SEARCH_LANGS);
+  const [esCards, indices] = await Promise.all([
+    getAllCards("es").catch(() => [] as TcgApiCardResume[]),
+    Promise.all(
+      uiLangs.map((l) =>
+        getSearchIndex(l).catch(() => [] as { id: string; norm: string }[]),
+      ),
+    ),
+  ]);
 
-  for (const card of all) {
-    const name = normalize(card.name);
-    if (!name.includes(q)) continue;
-    let score = 3;
-    if (name === q) score = 0;
-    else if (name.startsWith(q)) score = 1;
-    else if (name.includes(` ${q}`)) score = 2;
-    matches.push({ card, score });
+  const displayById = new Map(esCards.map((c) => [c.id, c]));
+
+  // Mejor score por card_id, mirando el nombre en todos los idiomas. Se
+  // descartan las cartas que no están en el catálogo ES (sets viejos nunca
+  // traducidos): sin nombre canónico en español no sirven en este marketplace.
+  const best = new Map<string, number>();
+  for (const entries of indices) {
+    for (const { id, norm } of entries) {
+      if (!displayById.has(id)) continue;
+      const score = nameScore(norm, q);
+      if (score < 0) continue;
+      const prev = best.get(id);
+      if (prev === undefined || score < prev) best.set(id, score);
+    }
   }
 
-  matches.sort(
-    (a, b) => a.score - b.score || a.card.name.localeCompare(b.card.name, "es"),
-  );
-
-  return matches.slice(0, limit).map((m) => ({
-    id: m.card.id,
-    localId: m.card.localId,
-    name: m.card.name,
-    image: cardImage(m.card.image, "low"),
-  }));
+  return [...best.entries()]
+    .sort((a, b) => {
+      if (a[1] !== b[1]) return a[1] - b[1];
+      const na = displayById.get(a[0])?.name ?? a[0];
+      const nb = displayById.get(b[0])?.name ?? b[0];
+      return na.localeCompare(nb, "es");
+    })
+    .slice(0, limit)
+    .map(([id]) => {
+      const card = displayById.get(id);
+      return {
+        id,
+        localId: card?.localId,
+        name: card?.name ?? id,
+        image: cardImage(card?.image, "low"),
+      };
+    });
 }
 
 // --- Escaneo de carta con la cámara -----------------------------------

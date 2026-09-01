@@ -9,7 +9,7 @@ import {
   uploadListingPhotos,
 } from "@/lib/listings/photo-upload";
 import { CITIES } from "@/lib/site";
-import { CONDITIONS, LANGUAGES } from "@/lib/listings";
+import { CONDITIONS } from "@/lib/listings";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import { CardPicker } from "@/components/cards/card-picker";
 import { CardThumb } from "@/components/cards/card-thumb";
 import { PhotoUploader } from "@/components/listings/photo-uploader";
 import { PriceHint } from "@/components/listings/price-hint";
+import { LanguageMultiPicker } from "@/components/listings/language-multi-picker";
 
 type FromCollection = {
   id: string;
@@ -144,7 +145,10 @@ export function PublishForm({
       card_image: isDeck
         ? (deck?.coverImage ?? null)
         : (fd.get("card_image") as string) || null,
-      language: (fd.get("language") as string) || "es",
+      languages:
+        fd.get("any_language") === "on"
+          ? []
+          : (fd.getAll("languages") as string[]),
       condition: (fd.get("condition") as string) || null,
       quantity: isDeck ? 1 : Number(fd.get("quantity") || 1),
       price_cop:
@@ -250,26 +254,13 @@ export function PublishForm({
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="language">Idioma</Label>
-          <Select
-            name="language"
-            defaultValue={fromCollectionItem?.language ?? "es"}
-          >
-            <SelectTrigger id="language">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LANGUAGES.map((l) => (
-                <SelectItem key={l.value} value={l.value}>
-                  {l.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <LanguageMultiPicker
+        defaultLanguages={
+          fromCollectionItem?.language ? [fromCollectionItem.language] : ["es"]
+        }
+      />
 
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="condition">Estado</Label>
           <Select
