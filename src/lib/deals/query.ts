@@ -117,6 +117,28 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
   });
 }
 
+/**
+ * ¿Existe un trato `confirmed` entre `userId` y `otherId` (en cualquiera de los
+ * dos roles)? Se usa para revelar el WhatsApp sólo cuando ambos aceptaron.
+ */
+export async function hasConfirmedDealWith(
+  userId: string,
+  otherId: string,
+): Promise<boolean> {
+  if (!userId || !otherId || userId === otherId) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("deals")
+    .select("id")
+    .eq("status", "confirmed")
+    .or(
+      `and(seller_id.eq.${userId},buyer_id.eq.${otherId}),` +
+        `and(seller_id.eq.${otherId},buyer_id.eq.${userId})`,
+    )
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
 export type MyDealForListing = {
   id: string;
   status: DealStatus;

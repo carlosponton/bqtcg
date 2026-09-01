@@ -48,10 +48,11 @@ export function StartDeal({ listingId, listingStatus, deal }: Props) {
     }
     return (
       <div className="rounded-lg border p-4">
-        <p className="text-sm font-medium">¿Ya cerraron el trato?</p>
+        <p className="text-sm font-medium">Concretar el trato</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Regístralo cuando hayan acordado la compra o el cambio (por WhatsApp o
-          en persona). Cuando ambos lo confirmen podrán reseñarse.
+          Regístralo cuando quieran cerrar la compra o el cambio. Al confirmarlo
+          ambos, verán el WhatsApp del otro para coordinar y podrán dejarse una
+          reseña.
         </p>
         <Button
           size="sm"
@@ -73,7 +74,8 @@ export function StartDeal({ listingId, listingStatus, deal }: Props) {
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
         <p className="text-sm font-medium">Trato confirmado ✓</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Ambos confirmaron. Pronto podrás dejar tu reseña desde{" "}
+          Ambos confirmaron. Ya pueden ver el WhatsApp del otro (arriba) para
+          coordinar, y dejar una reseña desde{" "}
           <Link href="/panel/tratos" className="underline underline-offset-2">
             Tratos
           </Link>
