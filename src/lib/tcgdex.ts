@@ -283,9 +283,54 @@ function normNumber(value: string): string {
     .replace(/^([A-Z]*)0+(\d)/, "$1$2");
 }
 
+/** ¿Dos cadenas de dígitos difieren en 1 sustitución o 1 transposición? (típico error de OCR). */
+function digitsClose(a: string, b: string): boolean {
+  if (!a || !b || Math.abs(a.length - b.length) > 1) return false;
+  if (a.length === b.length) {
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff++;
+    if (diff === 1) return true;
+    // transposición de dos adyacentes
+    for (let i = 0; i < a.length - 1; i++) {
+      if (
+        a[i] === b[i + 1] &&
+        a[i + 1] === b[i] &&
+        a.slice(0, i) === b.slice(0, i) &&
+        a.slice(i + 2) === b.slice(i + 2)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+  // una inserción/eliminación
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  for (let i = 0; i <= short.length; i++) {
+    if (short.slice(0, i) + long[i] + short.slice(i) === long) return true;
+  }
+  return false;
+}
+
+/** Similitud de Dice sobre trigramas de caracteres (0–1). */
+function trigramSim(a: string, b: string): number {
+  const grams = (s: string) => {
+    const p = `  ${s} `;
+    const out = new Set<string>();
+    for (let i = 0; i < p.length - 2; i++) out.add(p.slice(i, i + 3));
+    return out;
+  };
+  const ga = grams(a);
+  const gb = grams(b);
+  if (ga.size === 0 || gb.size === 0) return 0;
+  let inter = 0;
+  for (const g of ga) if (gb.has(g)) inter++;
+  return (2 * inter) / (ga.size + gb.size);
+}
+
 /**
- * Empareja lo leído por OCR con el catálogo (ya cacheado en memoria). El número
- * impreso + el total del set suelen dejar 1–4 candidatas; el nombre desempata.
+ * Empareja lo leído por OCR con el catálogo (ya cacheado en memoria). Nombre,
+ * número y total del set son **señales ponderadas**, ninguna excluye: si el OCR
+ * leyó mal el número, un buen nombre + total todavía saca la carta al tope.
  * Devuelve hasta `limit` candidatas ordenadas por confianza.
  */
 export async function matchScannedCard(
@@ -295,37 +340,59 @@ export async function matchScannedCard(
   const [all, sets] = await Promise.all([getAllCards(), getSetsMap()]);
 
   const nameNorm = q.name ? normalize(q.name) : "";
-  const nameTokens = nameNorm.split(" ").filter((t) => t.length > 2);
+  const nameTokens = nameNorm.split(" ").filter((t) => t.length > 1);
   const numNorm = q.number ? normNumber(q.number) : "";
+  const numDigits = numNorm.replace(/\D/g, "");
   const codeSetId = q.setCode
     ? SV_SET_CODES[q.setCode.trim().toUpperCase()]
     : undefined;
 
-  const pool = numNorm
-    ? all.filter((c) => normNumber(c.localId) === numNorm)
-    : all;
+  if (!nameNorm && !numNorm && !q.setTotal) return [];
 
   const scored: { card: TcgApiCardResume; score: number }[] = [];
-  for (const card of pool) {
+  for (const card of all) {
     const setId = setIdOf(card.id);
     const set = sets.get(setId);
-    let score = numNorm ? 5 : 0;
+    let score = 0;
 
+    // --- número impreso (fuerte, tolerante a 1 error de OCR) ---
+    if (numNorm) {
+      const cn = normNumber(card.localId);
+      const cd = cn.replace(/\D/g, "");
+      if (cn === numNorm) score += 55;
+      else if (cd && cd === numDigits) score += 34; // mismos dígitos, prefijo distinto
+      else if (digitsClose(cd, numDigits)) score += 14;
+    }
+
+    // --- total del set (el denominador impreso, ej. 189) ---
     if (q.setTotal && set) {
-      if (set.official === q.setTotal) score += 50;
-      else if (set.total === q.setTotal) score += 30;
-    }
-    if (codeSetId && setId === codeSetId) {
-      score += 30;
+      if (set.official === q.setTotal) score += 42;
+      else if (set.total === q.setTotal) score += 24;
+      else if (set.official != null && Math.abs(set.official - q.setTotal) <= 2) {
+        score += 10;
+      }
     }
 
+    // --- sigla Escarlata y Púrpura ---
+    if (codeSetId && setId === codeSetId) score += 26;
+
+    // --- nombre ---
     if (nameNorm) {
       const cn = normalize(card.name);
-      if (cn === nameNorm) score += 45;
-      else if (cn.includes(nameNorm) || nameNorm.includes(cn)) score += 25;
+      if (cn === nameNorm) score += 55;
+      else if (cn.startsWith(nameNorm) || nameNorm.startsWith(cn)) score += 40;
+      else if (cn.includes(nameNorm) || nameNorm.includes(cn)) score += 30;
       else {
-        const tokens = new Set(cn.split(" "));
-        score += nameTokens.filter((t) => tokens.has(t)).length * 8;
+        const ctoks = new Set(cn.split(" "));
+        const shared = nameTokens.filter((t) => ctoks.has(t)).length;
+        if (shared > 0) score += shared * 12;
+        else if (
+          nameNorm.length >= 4 &&
+          Math.abs(cn.length - nameNorm.length) <= Math.max(cn.length, nameNorm.length)
+        ) {
+          const sim = trigramSim(cn, nameNorm);
+          if (sim >= 0.42) score += Math.round(sim * 32);
+        }
       }
     }
 
@@ -336,7 +403,7 @@ export async function matchScannedCard(
     (a, b) => b.score - a.score || a.card.name.localeCompare(b.card.name, "es"),
   );
 
-  const toCandidate = (card: TcgApiCardResume): ScanCandidate => {
+  return scored.slice(0, limit).map(({ card }) => {
     const set = sets.get(setIdOf(card.id));
     return {
       id: card.id,
@@ -346,22 +413,7 @@ export async function matchScannedCard(
       setName: set?.name ?? null,
       setTotal: set?.official ?? set?.total ?? null,
     };
-  };
-
-  if (scored.length > 0) {
-    return scored.slice(0, limit).map((s) => toCandidate(s.card));
-  }
-
-  // Nada casó por número: último recurso, búsqueda por nombre.
-  if (nameNorm.length >= 2 && q.name) {
-    const byName = await searchCards(q.name, limit);
-    return byName.map((b) => {
-      const set = sets.get(setIdOf(b.id));
-      return { ...b, setName: set?.name ?? null, setTotal: set?.official ?? set?.total ?? null };
-    });
-  }
-
-  return [];
+  });
 }
 
 export async function getCard(id: string): Promise<TcgCardFull> {
