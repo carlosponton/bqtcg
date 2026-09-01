@@ -67,9 +67,13 @@ export function EditProfileForm({ username, defaults }: Props) {
         <select
           id="city"
           name="city"
-          defaultValue={defaults.city ?? "Barranquilla"}
+          required
+          defaultValue={defaults.city ?? ""}
           className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
+          <option value="" disabled>
+            Selecciona tu ciudad
+          </option>
           {CITIES.map((city) => (
             <option key={city} value={city}>
               {city}

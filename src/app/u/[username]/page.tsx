@@ -116,8 +116,12 @@ export default async function PublicProfilePage({
               </p>
             ) : null}
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
-              <span>{profile.city}</span>
-              <span>·</span>
+              {profile.city ? (
+                <>
+                  <span>{profile.city}</span>
+                  <span>·</span>
+                </>
+              ) : null}
               {profile.rating_count ? (
                 <>
                   <Stars rating={profile.rating_avg} />

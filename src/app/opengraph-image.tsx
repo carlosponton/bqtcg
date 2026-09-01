@@ -66,7 +66,7 @@ export default function OgImage() {
           Cambia, vende y encuentra tus cartas de Pokémon TCG
         </div>
         <div style={{ fontSize: 30, color: "#6f5d48", marginTop: 26 }}>
-          Marketplace de la comunidad en Barranquilla · sin listas de WhatsApp
+          Marketplace de la comunidad en Colombia · sin listas de WhatsApp
           perdidas
         </div>
         <div

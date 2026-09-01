@@ -27,10 +27,10 @@ export default function TerminosPage() {
       <p>
         {SITE_NAME} es una plataforma comunitaria que conecta a personas
         interesadas en <strong>vender, comprar o intercambiar</strong> cartas de
-        Pokémon TCG en Barranquilla y su área metropolitana, y en marcar cartas
-        que están buscando. La plataforma <strong>solo pone en contacto</strong> a
-        los usuarios; la negociación, el pago y la entrega ocurren directamente
-        entre ellos, por WhatsApp o en persona.
+        Pokémon TCG en Colombia, y en marcar cartas que están buscando. La
+        plataforma <strong>solo pone en contacto</strong> a los usuarios; la
+        negociación, el pago y la entrega ocurren directamente entre ellos, por
+        WhatsApp o en persona.
       </p>
 
       <h2>2. La plataforma no participa en las transacciones</h2>

@@ -17,7 +17,7 @@ export function SiteFooter() {
           <LogoMark className="size-6 text-foreground" />
           <p className="max-w-sm">
             <span className="font-semibold text-foreground">{SITE_NAME}</span> ·
-            Hecho por y para la comunidad de Barranquilla. No procesamos pagos:
+            Hecho por y para la comunidad en Colombia. No procesamos pagos:
             solo conectamos usuarios.
           </p>
         </div>

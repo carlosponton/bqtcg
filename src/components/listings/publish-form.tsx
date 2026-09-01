@@ -100,6 +100,10 @@ export function PublishForm({
       setError("Sube al menos una foto real.");
       return;
     }
+    if (!String(fd.get("city") ?? "").trim()) {
+      setError("Elige tu ciudad.");
+      return;
+    }
 
     setPending(true);
 
@@ -139,7 +143,7 @@ export function PublishForm({
       price_negotiable: fd.get("price_negotiable") === "on",
       trade_for: (fd.get("trade_for") as string) || null,
       description: (fd.get("description") as string) || null,
-      city: (fd.get("city") as string) || "Barranquilla",
+      city: (fd.get("city") as string) || "",
       photo_paths: photoPaths,
     };
 
@@ -291,9 +295,9 @@ export function PublishForm({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="city">Ciudad</Label>
-          <Select name="city" defaultValue={defaultCity ?? "Barranquilla"}>
+          <Select name="city" defaultValue={defaultCity ?? undefined}>
             <SelectTrigger id="city">
-              <SelectValue placeholder="Barranquilla" />
+              <SelectValue placeholder="Selecciona tu ciudad" />
             </SelectTrigger>
             <SelectContent>
               {CITIES.map((c) => (

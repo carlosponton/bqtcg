@@ -46,7 +46,7 @@ const displayNameSchema = z
 export const onboardingSchema = z.object({
   username: usernameSchema,
   display_name: displayNameSchema,
-  city: z.enum(CITIES, { error: "Elige una ciudad." }).default("Barranquilla"),
+  city: z.enum(CITIES, { error: "Elige tu ciudad." }),
   whatsapp: z.union([whatsappSchema, z.literal("")]).optional(),
   show_whatsapp: z.boolean().default(true),
 });
@@ -61,7 +61,7 @@ export const profileSchema = z.object({
     .trim()
     .max(280, { error: "Máximo 280 caracteres." })
     .optional(),
-  city: z.enum(CITIES, { error: "Elige una ciudad." }).default("Barranquilla"),
+  city: z.enum(CITIES, { error: "Elige tu ciudad." }),
   whatsapp: z.union([whatsappSchema, z.literal("")]).optional(),
   show_whatsapp: z.boolean().default(true),
   email_notifications: z.boolean().default(true),

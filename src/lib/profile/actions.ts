@@ -20,7 +20,7 @@ export async function updateProfile(
   const parsed = profileSchema.safeParse({
     display_name: formData.get("display_name"),
     bio: formData.get("bio") ?? "",
-    city: formData.get("city") ?? "Barranquilla",
+    city: formData.get("city") ?? "",
     whatsapp: formData.get("whatsapp") ?? "",
     show_whatsapp: formData.get("show_whatsapp") === "on",
     email_notifications: formData.get("email_notifications") === "on",
