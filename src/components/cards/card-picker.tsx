@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { ChevronsUpDown, ImagePlus, Search, X, ZoomIn } from "lucide-react";
 
 import { useDebouncedValue } from "@/lib/use-debounced-value";
-import { listingPhotoUrl } from "@/lib/listings";
+import {
+  LANGUAGES,
+  SEARCH_LANGUAGE_VALUES,
+  listingPhotoUrl,
+} from "@/lib/listings";
 import { uploadListingPhotos } from "@/lib/listings/photo-upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +87,8 @@ export function CardPicker({
   const [imageError, setImageError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  // Idioma en el que se busca el NOMBRE de la carta (no el del anuncio).
+  const [searchLang, setSearchLang] = useState("es");
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -99,9 +105,10 @@ export function CardPicker({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- patrón de búsqueda con debounce
     setLoading(true);
     setFetchError(null);
-    fetch(`/api/cards/search?q=${encodeURIComponent(q)}`, {
-      signal: controller.signal,
-    })
+    fetch(
+      `/api/cards/search?q=${encodeURIComponent(q)}&lang=${searchLang}`,
+      { signal: controller.signal },
+    )
       .then(async (r) => {
         const d: { results?: Result[]; error?: string; detail?: string } =
           await r.json();
@@ -119,7 +126,7 @@ export function CardPicker({
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [active, debounced]);
+  }, [active, debounced, searchLang]);
 
   // Avisa al padre de la carta del catálogo elegida (o null en modo a mano).
   useEffect(() => {
@@ -248,6 +255,25 @@ export function CardPicker({
                   onValueChange={setQuery}
                   placeholder="Ej. Charizard ex…"
                 />
+                <div className="flex items-center gap-2 border-b px-3 py-1.5 text-xs text-muted-foreground">
+                  <span>Buscar el nombre en</span>
+                  <select
+                    value={searchLang}
+                    onChange={(e) => setSearchLang(e.target.value)}
+                    className="h-7 rounded border border-input bg-transparent px-1.5 text-xs outline-none focus-visible:border-ring"
+                    aria-label="Idioma del nombre de la carta"
+                  >
+                    {LANGUAGES.filter((l) =>
+                      SEARCH_LANGUAGE_VALUES.includes(
+                        l.value as (typeof SEARCH_LANGUAGE_VALUES)[number],
+                      ),
+                    ).map((l) => (
+                      <option key={l.value} value={l.value}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <CommandList className="max-h-[min(60vh,26rem)]">
                   {loading ? (
                     <div className="p-3 text-sm text-muted-foreground">

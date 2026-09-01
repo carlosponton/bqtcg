@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { searchCards } from "@/lib/tcgdex";
+import { SEARCH_LANGS, searchCards } from "@/lib/tcgdex";
 
 /** Autocompletar de cartas para el formulario de publicar / agregar a colección. */
 export async function GET(request: NextRequest) {
@@ -9,8 +9,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
+  const langRaw = request.nextUrl.searchParams.get("lang")?.trim() ?? "es";
+  const lang = langRaw in SEARCH_LANGS ? langRaw : "es";
+
   try {
-    const results = await searchCards(q, 20);
+    const results = await searchCards(q, 20, lang);
     return NextResponse.json(
       { results },
       { headers: { "Cache-Control": "public, max-age=60, s-maxage=600" } },

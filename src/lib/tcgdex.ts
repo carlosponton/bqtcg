@@ -4,6 +4,7 @@ import TCGdex, {
   type Card as TcgApiCard,
   type CardResume as TcgApiCardResume,
   type SetResume as TcgApiSetResume,
+  type SupportedLanguages,
 } from "@tcgdex/sdk";
 
 /**
@@ -21,8 +22,35 @@ import TCGdex, {
 const ENDPOINT =
   process.env.TCGDEX_ENDPOINT || "https://api.eu1.tcgdex.net/v2";
 
-const tcgdex = new TCGdex("es");
-tcgdex.setEndpoint(ENDPOINT);
+/**
+ * Idiomas en los que se puede buscar el nombre de una carta.
+ * clave = valor de `LANGUAGES` (`@/lib/listings`); valor = código de TCGdex.
+ * Muchos nombres cambian según el idioma, así que quien no sepa el nombre en
+ * español puede buscar en inglés, japonés, etc.
+ */
+export const SEARCH_LANGS: Record<string, SupportedLanguages> = {
+  es: "es",
+  en: "en",
+  pt: "pt",
+  fr: "fr",
+  de: "de",
+  it: "it",
+};
+
+/** Un cliente TCGdex por idioma (baratos; el SDK cachea por URL, que lleva el idioma). */
+const clients = new Map<string, TCGdex>();
+function client(tcgLang: SupportedLanguages): TCGdex {
+  let c = clients.get(tcgLang);
+  if (!c) {
+    c = new TCGdex(tcgLang);
+    c.setEndpoint(ENDPOINT);
+    clients.set(tcgLang, c);
+  }
+  return c;
+}
+
+/** Cliente por defecto (español) para todo lo que no depende del idioma de búsqueda. */
+const tcgdex = client("es");
 
 export type TcgCardBrief = {
   id: string;
@@ -106,8 +134,12 @@ const POCKET_ID_RE = /^(a\d|b\d|p-a)/i;
 
 type TcgSerieFull = { id: string; name: string; sets?: { id: string }[] };
 
-let listCache: { at: number; cards: TcgApiCardResume[] } | null = null;
-let listInflight: Promise<TcgApiCardResume[]> | null = null;
+// Lista completa de cartas por código de idioma de TCGdex (cache 6 h c/u).
+const listCache = new Map<
+  string,
+  { at: number; cards: TcgApiCardResume[] }
+>();
+const listInflight = new Map<string, Promise<TcgApiCardResume[]>>();
 
 let excludedSetsCache: { at: number; ids: Set<string> } | null = null;
 let excludedSetsInflight: Promise<Set<string>> | null = null;
@@ -166,24 +198,28 @@ function isExcludedCard(cardId: string, excludedSets: Set<string>): boolean {
   return POCKET_ID_RE.test(cardId); // no cargaron las series: usa el patrón
 }
 
-async function getAllCards(): Promise<TcgApiCardResume[]> {
-  if (listCache && Date.now() - listCache.at < LIST_TTL_MS) {
-    return listCache.cards;
-  }
-  if (!listInflight) {
-    listInflight = Promise.all([tcgdex.fetch("cards"), getExcludedSetIds()])
+async function getAllCards(uiLang = "es"): Promise<TcgApiCardResume[]> {
+  const tcgLang = SEARCH_LANGS[uiLang] ?? "es";
+
+  const cached = listCache.get(tcgLang);
+  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.cards;
+
+  let inflight = listInflight.get(tcgLang);
+  if (!inflight) {
+    inflight = Promise.all([client(tcgLang).fetch("cards"), getExcludedSetIds()])
       .then(([cards, excludedSets]) => {
-        const list = (cards ?? []).filter(
+        const list = ((cards ?? []) as TcgApiCardResume[]).filter(
           (card) => !isExcludedCard(card.id, excludedSets),
         );
-        listCache = { at: Date.now(), cards: list };
+        listCache.set(tcgLang, { at: Date.now(), cards: list });
         return list;
       })
       .finally(() => {
-        listInflight = null;
+        listInflight.delete(tcgLang);
       });
+    listInflight.set(tcgLang, inflight);
   }
-  return listInflight;
+  return inflight;
 }
 
 // --- API pública del módulo ---------------------------------------------
@@ -191,11 +227,12 @@ async function getAllCards(): Promise<TcgApiCardResume[]> {
 export async function searchCards(
   query: string,
   limit = 20,
+  lang = "es",
 ): Promise<TcgCardBrief[]> {
   const q = normalize(query);
   if (q.length < 2) return [];
 
-  const all = await getAllCards();
+  const all = await getAllCards(lang);
   const matches: { card: TcgApiCardResume; score: number }[] = [];
 
   for (const card of all) {
