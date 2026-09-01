@@ -26,7 +26,7 @@ async function requireUser() {
 type DealForEmail = {
   seller_id: string;
   buyer_id: string;
-  status: "pending" | "confirmed" | "cancelled";
+  status: "pending" | "confirmed" | "completed" | "cancelled";
   quantity: number;
   listings: { card_name: string; image_url: string | null } | null;
 };
@@ -55,10 +55,22 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
 
   if (deal.status === "confirmed") {
     await emailUser(to, {
-      subject: "Trato confirmado",
-      heading: "El trato quedó confirmado",
+      subject: "Trato aceptado",
+      heading: "La otra persona aceptó el trato",
       lines: [
-        `Se confirmó el trato por "${card}"${qtyNote(deal.quantity)}. Ya pueden dejarse una reseña.`,
+        `Se aceptó el trato por "${card}"${qtyNote(deal.quantity)}. Ya pueden ver el WhatsApp del otro para coordinar la entrega. Ciérrenlo cuando lo hayan hecho.`,
+      ],
+      ctaLabel: "Ver mis tratos",
+      ctaPath: "/panel/tratos",
+      imageUrl,
+      imageAlt: card,
+    });
+  } else if (deal.status === "completed") {
+    await emailUser(to, {
+      subject: "Trato cerrado",
+      heading: "El trato quedó cerrado",
+      lines: [
+        `Se cerró el trato por "${card}"${qtyNote(deal.quantity)}. Ya pueden dejarse una reseña.`,
       ],
       ctaLabel: "Ver mis tratos",
       ctaPath: "/panel/tratos",
@@ -141,7 +153,7 @@ export async function startDeal(
 }
 
 async function dealRpc(
-  fn: "confirm_deal" | "cancel_deal",
+  fn: "confirm_deal" | "complete_deal" | "cancel_deal",
   dealId: string,
 ): Promise<DealResult> {
   if (!uuid.safeParse(dealId).success) {
@@ -161,19 +173,18 @@ async function dealRpc(
   revalidatePath("/panel/tratos");
   revalidatePath("/panel");
 
-  // Confirmar un trato cierra el anuncio de origen (trigger
-  // `deals_close_listing`): refresca los feeds públicos y el detalle.
-  if (fn === "confirm_deal") {
-    const { data: d } = await supabase
-      .from("deals")
-      .select("listing_id, status")
-      .eq("id", dealId)
-      .maybeSingle();
-    if (d?.status === "confirmed") {
-      revalidatePath("/");
-      revalidatePath("/explorar");
-      if (d.listing_id) revalidatePath(`/anuncio/${d.listing_id}`);
-    }
+  const { data: d } = await supabase
+    .from("deals")
+    .select("listing_id, status")
+    .eq("id", dealId)
+    .maybeSingle();
+  if (d?.listing_id) revalidatePath(`/anuncio/${d.listing_id}`);
+
+  // Cerrar el trato descuenta/cierra el anuncio (trigger
+  // `deals_settle_listing`): refresca los feeds públicos.
+  if (fn === "complete_deal" && d?.status === "completed") {
+    revalidatePath("/");
+    revalidatePath("/explorar");
   }
 
   return { ok: true };
@@ -181,6 +192,10 @@ async function dealRpc(
 
 export async function confirmDeal(dealId: string): Promise<DealResult> {
   return dealRpc("confirm_deal", dealId);
+}
+
+export async function completeDeal(dealId: string): Promise<DealResult> {
+  return dealRpc("complete_deal", dealId);
 }
 
 export async function cancelDeal(dealId: string): Promise<DealResult> {

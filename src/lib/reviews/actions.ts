@@ -47,8 +47,8 @@ export async function submitReview(input: {
   } | null;
 
   if (!deal) return { ok: false, error: "Trato no encontrado." };
-  if (deal.status !== "confirmed") {
-    return { ok: false, error: "Sólo puedes reseñar tratos confirmados." };
+  if (deal.status !== "completed") {
+    return { ok: false, error: "Sólo puedes reseñar tratos cerrados." };
   }
   if (user.id !== deal.seller_id && user.id !== deal.buyer_id) {
     return { ok: false, error: "No participaste en este trato." };

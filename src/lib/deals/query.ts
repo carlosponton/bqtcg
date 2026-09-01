@@ -4,6 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { listingPhotoUrl } from "@/lib/listings";
 import type { DealStatus } from "@/types/database";
 
+type Counterparty = {
+  username: string | null;
+  display_name: string | null;
+  /** Sólo se rellena si el trato está `confirmed` o `completed`. */
+  whatsapp: string | null;
+};
+
 export type DealListItem = {
   id: string;
   status: DealStatus;
@@ -13,8 +20,9 @@ export type DealListItem = {
   otherConfirmed: boolean;
   createdAt: string;
   confirmedAt: string | null;
+  completedAt: string | null;
   listing: { id: string; card_name: string; image: string | null } | null;
-  counterparty: { username: string | null; display_name: string | null } | null;
+  counterparty: Counterparty | null;
   myReview: { rating: number; comment: string | null } | null;
 };
 
@@ -28,6 +36,7 @@ type DealRow = {
   seller_confirmed: boolean;
   buyer_confirmed: boolean;
   confirmed_at: string | null;
+  completed_at: string | null;
   created_at: string;
   listings: {
     id: string;
@@ -36,6 +45,9 @@ type DealRow = {
     listing_photos: { storage_path: string; sort_order: number }[] | null;
   } | null;
 };
+
+/** Estados en los que ambas partes ya pueden ver el WhatsApp del otro. */
+const CONTACT_STATUSES: DealStatus[] = ["confirmed", "completed"];
 
 function listingThumb(l: DealRow["listings"]): string | null {
   if (!l) return null;
@@ -50,7 +62,7 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
   const { data } = await supabase
     .from("deals")
     .select(
-      "id, listing_id, seller_id, buyer_id, status, quantity, seller_confirmed, buyer_confirmed, confirmed_at, created_at, listings(id, card_name, image_url, listing_photos(storage_path, sort_order))",
+      "id, listing_id, seller_id, buyer_id, status, quantity, seller_confirmed, buyer_confirmed, confirmed_at, completed_at, created_at, listings(id, card_name, image_url, listing_photos(storage_path, sort_order))",
     )
     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
     .order("created_at", { ascending: false })
@@ -58,17 +70,17 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
 
   const rows = (data ?? []) as unknown as DealRow[];
 
-  // Mis reseñas ya dejadas para estos tratos (para prellenar / mostrar).
+  // Mis reseñas ya dejadas para estos tratos cerrados (para prellenar / mostrar).
   const reviews = new Map<string, { rating: number; comment: string | null }>();
-  const confirmedIds = rows
-    .filter((r) => r.status === "confirmed")
+  const completedIds = rows
+    .filter((r) => r.status === "completed")
     .map((r) => r.id);
-  if (confirmedIds.length > 0) {
+  if (completedIds.length > 0) {
     const { data: myReviews } = await supabase
       .from("reviews")
       .select("deal_id, rating, comment")
       .eq("reviewer_id", userId)
-      .in("deal_id", confirmedIds);
+      .in("deal_id", completedIds);
     for (const rv of myReviews ?? []) {
       reviews.set(rv.deal_id, { rating: rv.rating, comment: rv.comment });
     }
@@ -81,15 +93,20 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
   ];
   const people = new Map<
     string,
-    { username: string | null; display_name: string | null }
+    { username: string | null; display_name: string | null; whatsapp: string | null; show_whatsapp: boolean }
   >();
   if (otherIds.length > 0) {
     const { data: profs } = await supabase
       .from("profiles")
-      .select("id, username, display_name")
+      .select("id, username, display_name, whatsapp, show_whatsapp")
       .in("id", otherIds);
     for (const p of profs ?? []) {
-      people.set(p.id, { username: p.username, display_name: p.display_name });
+      people.set(p.id, {
+        username: p.username,
+        display_name: p.display_name,
+        whatsapp: p.whatsapp,
+        show_whatsapp: p.show_whatsapp === true,
+      });
     }
   }
 
@@ -97,6 +114,8 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
     const role: "seller" | "buyer" =
       r.seller_id === userId ? "seller" : "buyer";
     const otherId = role === "seller" ? r.buyer_id : r.seller_id;
+    const p = people.get(otherId);
+    const showContact = CONTACT_STATUSES.includes(r.status);
     return {
       id: r.id,
       status: r.status,
@@ -107,6 +126,7 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
         role === "seller" ? r.buyer_confirmed : r.seller_confirmed,
       createdAt: r.created_at,
       confirmedAt: r.confirmed_at,
+      completedAt: r.completed_at,
       listing: r.listings
         ? {
             id: r.listings.id,
@@ -114,17 +134,24 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
             image: listingThumb(r.listings),
           }
         : null,
-      counterparty: people.get(otherId) ?? null,
+      counterparty: p
+        ? {
+            username: p.username,
+            display_name: p.display_name,
+            whatsapp:
+              showContact && p.show_whatsapp && p.whatsapp ? p.whatsapp : null,
+          }
+        : null,
       myReview: reviews.get(r.id) ?? null,
     };
   });
 }
 
 /**
- * ¿Existe un trato `confirmed` entre `userId` y `otherId` (en cualquiera de los
- * dos roles)? Se usa para revelar el WhatsApp sólo cuando ambos aceptaron.
+ * ¿Existe un trato entre `userId` y `otherId` (en cualquier rol) en un estado
+ * donde ya pueden verse el WhatsApp (`confirmed` o `completed`)?
  */
-export async function hasConfirmedDealWith(
+export async function hasActiveDealWith(
   userId: string,
   otherId: string,
 ): Promise<boolean> {
@@ -133,7 +160,7 @@ export async function hasConfirmedDealWith(
   const { data } = await supabase
     .from("deals")
     .select("id")
-    .eq("status", "confirmed")
+    .in("status", CONTACT_STATUSES)
     .or(
       `and(seller_id.eq.${userId},buyer_id.eq.${otherId}),` +
         `and(seller_id.eq.${otherId},buyer_id.eq.${userId})`,
