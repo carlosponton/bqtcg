@@ -59,7 +59,7 @@ function listingThumb(l: DealRow["listings"]): string | null {
 
 export async function listMyDeals(userId: string): Promise<DealListItem[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("deals")
     .select(
       "id, listing_id, seller_id, buyer_id, status, quantity, seller_confirmed, buyer_confirmed, confirmed_at, completed_at, created_at, listings(id, card_name, image_url, listing_photos(storage_path, sort_order))",
@@ -67,6 +67,12 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
     .order("created_at", { ascending: false })
     .limit(200);
+
+  // Sin esto, un desajuste de esquema (p. ej. una migración sin correr) hacía
+  // que `/panel/tratos` se viera vacío en silencio.
+  if (error) {
+    console.error("[listMyDeals] error consultando tratos:", error.message);
+  }
 
   const rows = (data ?? []) as unknown as DealRow[];
 
@@ -186,7 +192,7 @@ export async function getMyDealForListing(
   const supabase = await createClient();
   // El llamador nunca es el vendedor (se comprueba antes), así que basta con
   // buscar por `buyer_id`; el índice garantiza <= 1 trato no cancelado.
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("deals")
     .select("id, status, quantity, seller_id, seller_confirmed, buyer_confirmed")
     .eq("listing_id", listingId)
@@ -194,6 +200,9 @@ export async function getMyDealForListing(
     .neq("status", "cancelled")
     .maybeSingle();
 
+  if (error) {
+    console.error("[getMyDealForListing] error:", error.message);
+  }
   if (!data) return null;
   return {
     id: data.id,
