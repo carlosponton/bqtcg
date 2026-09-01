@@ -11,21 +11,6 @@ export const LANGUAGES = [
   { value: "other", label: "Otro" },
 ] as const;
 
-/**
- * Idiomas en los que se puede buscar el NOMBRE de una carta en el catálogo.
- * Sólo los que TCGdex sirve con la misma numeración de sets (el japonés usa
- * otra estructura de IDs y no cruza), así que la carta elegida siempre resuelve
- * a su nombre canónico en español.
- */
-export const SEARCH_LANGUAGE_VALUES = [
-  "es",
-  "en",
-  "pt",
-  "fr",
-  "de",
-  "it",
-] as const;
-
 export const CONDITIONS = [
   { value: "M", label: "Mint (M) — impecable" },
   { value: "NM", label: "Near Mint (NM) — casi perfecta" },

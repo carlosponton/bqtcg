@@ -85,13 +85,14 @@ vive en `feat/rediseño-el-cambista`.)
   (`uploadListingPhotos` / `removeStoragePhotos`).
 - **Catálogo TCGdex** (`src/lib/tcgdex.ts`, `server-only`): usa el **SDK oficial
   `@tcgdex/sdk`** (`setEndpoint(...)`, un cliente memoizado por idioma).
-  `searchCards(q, limit, lang)` baja la lista completa de cartas **por idioma**
-  (cache 6 h en memoria por idioma) y filtra en el servidor.
-  `/api/cards/search?q=&lang=` — `lang` ∈ `SEARCH_LANGS` (`es`/`en`/`pt`/`fr`/
-  `de`/`it`; el japonés usa otra numeración y no cruza). El `CardPicker` tiene
-  un selector "buscar el nombre en" para quien no sabe el nombre en español; la
-  carta elegida se resuelve igual por `card_id` a su nombre canónico en
-  español (`resolveCard`). Se **excluyen** las
+  `getAllCards(lang)` baja la lista completa de cartas **por idioma** (cache 6 h
+  en memoria por idioma). **`searchCards(q)` busca en TODOS los idiomas de
+  `SEARCH_LANGS`** (`es`/`en`/`pt`/`fr`/`de`/`it` — comparten numeración de
+  sets; el japonés no) contra un índice normalizado por idioma (`getSearchIndex`,
+  cache 6 h), junta por `card_id` y devuelve **el nombre canónico en español**;
+  descarta las cartas que no están en el catálogo ES. Así "Wally" y "Blasco"
+  encuentran la misma carta sin que el usuario elija idioma. `resolveCard` la
+  confirma por `card_id`. `/api/cards/search?q=`. Se **excluyen** las
   series de `EXCLUDED_SERIE_IDS` (`tcgp` = Pokémon TCG Pocket): `getExcludedSetIds`
   baja los sets de esas series (cache 6 h; reserva por regex `POCKET_ID_RE`) y
   `getAllCards` los filtra por prefijo de `card.id`. El emparejamiento usa
