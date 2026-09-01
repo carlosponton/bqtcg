@@ -4,10 +4,12 @@
  * `tesseract.js` se carga con `import()` dinámico: sólo se descarga (~4 MB,
  * desde su CDN) cuando alguien usa el escáner. Nada de esto llega al servidor.
  *
- * En vez de una sola pasada sobre toda la carta, se leen por separado las dos
- * zonas útiles (el nombre arriba, el número/total/sigla en la banda inferior),
- * cada una recortada y ampliada. La distribución de una carta es fija, así que
- * estas fracciones sirven para la gran mayoría; ajústalas si hace falta.
+ * `scanCard()` recibe la carta YA recortada y encuadrada (ver `CardAlignCrop`,
+ * paso previo en el que el usuario ajusta el recuadro sobre su foto) — así las
+ * fracciones de zona de abajo caen sobre la carta real y no sobre mesa/fondo,
+ * que era el problema cuando se leía directo la foto sin alinear. Dentro de
+ * esa carta se leen por separado el nombre (arriba) y el número/total/sigla
+ * (banda inferior), cada zona recortada de nuevo y ampliada.
  */
 
 export type ScanFields = {
@@ -26,23 +28,21 @@ export type ScanFields = {
 
 type Region = { x: number; y: number; w: number; h: number };
 
-/** Banda del nombre (arriba, casi todo el ancho). Fracciones 0–1. */
+/** Banda del nombre (arriba, casi todo el ancho). Fracciones 0–1 de la carta ya recortada. */
 export const NAME_REGION: Region = { x: 0.03, y: 0.02, w: 0.94, h: 0.15 };
 /** Banda inferior izquierda: número / total / sigla / ilustrador. */
 export const BOTTOM_REGION: Region = { x: 0.0, y: 0.84, w: 0.66, h: 0.16 };
 
-async function loadBitmap(file: File): Promise<ImageBitmap> {
-  return createImageBitmap(file, { imageOrientation: "from-image" }).catch(() =>
-    createImageBitmap(file),
-  );
-}
-
-/** Recorta una zona, la escala a `outWidth` y la deja en gris con más contraste. */
-function crop(bmp: ImageBitmap, r: Region, outWidth: number): HTMLCanvasElement {
-  const sx = Math.round(bmp.width * r.x);
-  const sy = Math.round(bmp.height * r.y);
-  const sw = Math.max(1, Math.round(bmp.width * r.w));
-  const sh = Math.max(1, Math.round(bmp.height * r.h));
+/** Recorta una zona de un canvas, la escala a `outWidth` y la deja en gris con más contraste. */
+function crop(
+  source: HTMLCanvasElement,
+  r: Region,
+  outWidth: number,
+): HTMLCanvasElement {
+  const sx = Math.round(source.width * r.x);
+  const sy = Math.round(source.height * r.y);
+  const sw = Math.max(1, Math.round(source.width * r.w));
+  const sh = Math.max(1, Math.round(source.height * r.h));
   const scale = Math.max(1, outWidth / sw);
   const w = Math.max(1, Math.round(sw * scale));
   const h = Math.max(1, Math.round(sh * scale));
@@ -54,7 +54,7 @@ function crop(bmp: ImageBitmap, r: Region, outWidth: number): HTMLCanvasElement 
   if (!ctx) return canvas;
 
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, w, h);
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, w, h);
 
   const img = ctx.getImageData(0, 0, w, h);
   const d = img.data;
@@ -136,19 +136,18 @@ export function parseCardText(nameText: string, bottomText = ""): ScanFields {
   };
 }
 
-/** Corre el OCR sobre las dos zonas de la foto y devuelve los campos parseados. */
+/**
+ * Corre el OCR sobre las dos zonas de una carta ya recortada (ver
+ * `CardAlignCrop`) y devuelve los campos parseados.
+ */
 export async function scanCard(
-  file: File,
+  cardCanvas: HTMLCanvasElement,
   onProgress?: (fraction: number) => void,
 ): Promise<ScanFields> {
-  const [{ createWorker, PSM }, bmp] = await Promise.all([
-    import("tesseract.js"),
-    loadBitmap(file),
-  ]);
+  const { createWorker, PSM } = await import("tesseract.js");
 
-  const nameCanvas = crop(bmp, NAME_REGION, 1100);
-  const bottomCanvas = crop(bmp, BOTTOM_REGION, 1500);
-  bmp.close?.();
+  const nameCanvas = crop(cardCanvas, NAME_REGION, 1100);
+  const bottomCanvas = crop(cardCanvas, BOTTOM_REGION, 1500);
 
   let step = 0;
   const report = (frac: number) => onProgress?.((step + frac) / 2);

@@ -107,20 +107,26 @@ vive en `feat/rediseño-el-cambista`.)
   internacional), nunca precio sugerido; no se guarda en `listings`.
 - **Escaneo de carta con la cámara** (todo gratis, sin servidor de OCR): botón
   "Escanear con la cámara" en `CardPicker` (modo catálogo, no `locked`).
-  `CardScanner` toma una foto (`<input capture>`) y corre **Tesseract.js** en
-  el navegador (`import()` dinámico, ~4 MB desde su CDN, sólo al usar el
-  escáner) — `src/lib/ocr/scan-card.ts`. **Dos pasadas por zona** (recortadas y
-  ampliadas): `NAME_REGION` (banda superior, `PSM.SINGLE_BLOCK`) para el nombre
-  y `BOTTOM_REGION` (inferior izquierda, `PSM.SPARSE_TEXT`) para número `N/T`,
-  total y sigla S&V; `parseCardText(nameText, bottomText)` los separa. Las
-  fracciones de recorte son aproximadas (distribución fija de la carta), se
-  ajustan si hace falta. Los campos son editables; `GET
-  /api/cards/scan?name=&number=&total=&code=` llama a `matchScannedCard()`
-  (`src/lib/tcgdex.ts`): **ponderación, sin filtro duro** — cada carta del
-  catálogo cacheado suma por número exacto/dígitos/1-error (`digitsClose`),
-  total oficial del set (`getSetsMap`, cache 6 h), sigla (`SV_SET_CODES`) y
-  nombre (exacto/prefijo/substring/tokens/`trigramSim`). Así, si el OCR leyó
-  mal un campo, los otros dos igual sacan la carta al tope. Siempre muestra
+  `CardScanner` toma una foto (`<input capture>`) y antes de leerla exige un
+  **paso de alineado** — `CardAlignCrop` (`src/components/cards/`): el usuario
+  arrastra/redimensiona un recuadro con la proporción real de una carta
+  (2.5:3.5) sobre su foto. Sin esto, si la carta no quedaba centrada o no
+  llenaba el encuadre, las zonas fijas de lectura caían sobre mesa/fondo y el
+  OCR leía cualquier cosa. El recuadro se recorta a un canvas limpio de 1000px
+  de ancho (proporción de carta) que alimenta `scanCard()`.
+  `src/lib/ocr/scan-card.ts` corre **Tesseract.js** en el navegador (`import()`
+  dinámico, ~4 MB desde su CDN, sólo al usar el escáner), **dos pasadas por
+  zona** sobre ese recorte ya alineado (recortadas de nuevo y ampliadas):
+  `NAME_REGION` (banda superior, `PSM.SINGLE_BLOCK`) para el nombre y
+  `BOTTOM_REGION` (inferior izquierda, `PSM.SPARSE_TEXT`) para número `N/T`,
+  total y sigla S&V; `parseCardText(nameText, bottomText)` los separa. Los
+  campos son editables; `GET /api/cards/scan?name=&number=&total=&code=` llama
+  a `matchScannedCard()` (`src/lib/tcgdex.ts`): **ponderación, sin filtro
+  duro** — cada carta del catálogo cacheado suma por número
+  exacto/dígitos/1-error (`digitsClose`), total oficial del set
+  (`getSetsMap`, cache 6 h), sigla (`SV_SET_CODES`) y nombre
+  (exacto/prefijo/substring/tokens/`trigramSim`). Así, si el OCR leyó mal un
+  campo, los otros dos igual sacan la carta al tope. Siempre muestra
   candidatas para confirmar; nunca elige solo. La foto no se sube a ningún
   lado. `pnpm-workspace.yaml` marca `tesseract.js` como `allowBuilds: false`
   (su postinstall es sólo un aviso de donación).
