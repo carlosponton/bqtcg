@@ -324,7 +324,11 @@ export default async function AnuncioPage({
 
           {viewer && !isOwner ? (
             <>
-              <StartDeal listingId={listing.id} deal={myDeal} />
+              <StartDeal
+                listingId={listing.id}
+                listingStatus={listing.status}
+                deal={myDeal}
+              />
               <div className="-ml-2">
                 <ReportDialog
                   targetType="listing"

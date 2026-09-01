@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 
 type Props = {
   listingId: string;
+  listingStatus?: string;
   deal: MyDealForListing;
 };
 
 /** Bloque de "registrar / confirmar trato" en el detalle del anuncio. */
-export function StartDeal({ listingId, deal }: Props) {
+export function StartDeal({ listingId, listingStatus, deal }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,22 @@ export function StartDeal({ listingId, deal }: Props) {
   }
 
   if (!deal) {
+    if (listingStatus === "closed" || listingStatus === "reserved") {
+      return (
+        <div className="rounded-lg border p-4">
+          <p className="text-sm font-medium">
+            {listingStatus === "closed"
+              ? "Este anuncio ya se cerró"
+              : "Este anuncio está reservado"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {listingStatus === "closed"
+              ? "Quien lo publicó lo dio por cerrado, normalmente porque ya concretó el trato."
+              : "Quien lo publicó lo tiene en pausa por ahora."}
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="rounded-lg border p-4">
         <p className="text-sm font-medium">¿Ya cerraron el trato?</p>

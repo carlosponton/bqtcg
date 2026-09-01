@@ -130,6 +130,12 @@ vive en `feat/rediseño-el-cambista`.)
   por las 3 RPCs SECURITY DEFINER) — migración `20260902000000_deals.sql`, no
   toca `listings`. UI: `StartDeal` en `/anuncio/[id]`, `/panel/tratos` con
   `DealRow`. Lógica en `src/lib/deals/{actions,query}.ts`.
+  Ajuste de flujo (migración `20260910000000_deal_confirm_closes_listing.sql`):
+  al pasar a `confirmed`, el trigger `deals_close_listing` cierra el anuncio de
+  origen (`status='closed'`, sólo desde `active`/`reserved`) para que salga de
+  home / `/explorar` / perfil público; el vendedor lo reactiva desde `/panel`.
+  `StartDeal` oculta el CTA "registrar el trato" si el anuncio está
+  `closed`/`reserved`, y `confirmDeal` revalida `/`, `/explorar` y el detalle.
 - Fase 2 slice 2 (hecha): `reviews` — cada parte de un `deal` `confirmed` deja
   una reseña (1–5 + comentario) de la otra. INSERT/UPDATE/DELETE por RLS (el
   `with check` valida que el trato esté confirmado y que `reviewee_id` sea la
