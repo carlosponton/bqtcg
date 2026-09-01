@@ -167,28 +167,31 @@ vive en `feat/rediseño-el-cambista`.)
   helper de subida compartido en `src/lib/listings/photo-upload.ts`.
 - Fase 1 pendiente (menor): reordenar fotos; avatar para usuarios de email;
   búsqueda tolerante a typos (ranking `similarity`).
-- Fase 2 slice 1 (hecha): `deals` — **flujo de 3 pasos** (migraciones
-  `20260913000000..004`, sobre `20260902000000_deals.sql`):
-  1. `pending` — la otra parte propone el trato (`create_deal`).
-  2. `confirmed` = **EN CURSO** — el dueño lo acepta (`confirm_deal`, ambas
-     confirmaciones). Ya se ven el **WhatsApp del otro** para coordinar la
-     entrega; el anuncio sigue visible.
-  3. `completed` = **CERRADO** — cualquiera de los dos lo cierra
-     (`complete_deal`, un solo click). Recién ahí se habilitan las reseñas y el
-     trigger `deals_settle_listing` descuenta `listings.quantity -= deals.quantity`
-     (**piso en 1** — poner 0 violaba `listings_quantity_check`; si el remanente
-     llega a 0 marca `status='closed'`, nunca toca `removed`).
-  `cancel_deal` desde `pending` o `confirmed`. `deals.quantity` (≥1, en
-  `create_deal(uuid, int)`, acotada a la cantidad del anuncio); el picker sale en
-  `StartDeal` si `listingQuantity > 1`, `DealRow` muestra `×N`. `deals_notify`
-  avisa en cada paso; `deals.completed_at` / `completed_by` nuevos.
-  El **WhatsApp del otro se revela con el trato en `confirmed` o `completed`**
-  (no basta con tener sesión): `/anuncio/[id]` mira `myDeal.status`,
-  `/u/[username]` y `DealRow` usan `hasActiveDealWith` / el `whatsapp` que trae
-  `listMyDeals` (`src/lib/deals/query.ts`, sólo para esos estados). RLS: escritura
-  sólo por las 4 RPCs SECURITY DEFINER. UI: `StartDeal` en `/anuncio/[id]`,
-  `/panel/tratos` con `DealRow`. Lógica en `src/lib/deals/{actions,query}.ts`.
-- Fase 2 slice 2 (hecha): `reviews` — cada parte de un `deal` `completed` deja
+- Fase 2 slice 1 (hecha): `deals` — la otra parte registra un trato desde el
+  anuncio (`create_deal`), el vendedor lo confirma (`confirm_deal`); con ambas
+  confirmaciones queda `confirmed` (habilita reseñas). `cancel_deal` mientras
+  esté `pending`. Tabla `deals` (RLS: sólo las dos partes leen; escritura sólo
+  por las 3 RPCs SECURITY DEFINER) — migración `20260902000000_deals.sql`, no
+  toca `listings`. UI: `StartDeal` en `/anuncio/[id]`, `/panel/tratos` con
+  `DealRow`. Lógica en `src/lib/deals/{actions,query}.ts`.
+  Ajuste de flujo (migración `20260910000000`, luego `20260911000000..001`,
+  hotfix `20260912000000`): un trato lleva **`deals.quantity`** (≥1, elegida en
+  `create_deal(uuid, int)` y acotada a la cantidad del anuncio). Al pasar a
+  `confirmed`, el trigger `deals_settle_listing` descuenta
+  `listings.quantity -= deals.quantity` **con piso en 1** (poner 0 violaba
+  `listings_quantity_check` y abortaba `confirm_deal`); si el remanente llega a
+  0 marca `status='closed'` (nunca toca `removed`) — así un anuncio con varias
+  unidades sigue en home / `/explorar` mientras quede stock. Sustituye a
+  `deals_close_listing`. El picker de cantidad sale en `StartDeal`
+  cuando `listingQuantity > 1` (venta, cambio o busco); `DealRow` muestra `×N`.
+  `StartDeal` oculta el CTA "registrar el trato" si el anuncio está
+  `closed`/`reserved`, y `confirmDeal` revalida `/`, `/explorar` y el detalle.
+  El **WhatsApp del otro sólo se revela con un trato `confirmed` entre ambos**
+  (no basta con tener sesión): en `/anuncio/[id]` mira `myDeal.status`, en
+  `/u/[username]` usa `hasConfirmedDealWith(viewerId, ownerId)` en
+  `src/lib/deals/query.ts` (cualquier rol). Sin trato confirmado el `<a>` de
+  WhatsApp no se renderiza (no llega al HTML). Sin cambios de esquema.
+- Fase 2 slice 2 (hecha): `reviews` — cada parte de un `deal` `confirmed` deja
   una reseña (1–5 + comentario) de la otra. INSERT/UPDATE/DELETE por RLS (el
   `with check` valida que el trato esté cerrado y que `reviewee_id` sea la
   contraparte); SELECT público. Trigger `reviews_rating_sync` recalcula
