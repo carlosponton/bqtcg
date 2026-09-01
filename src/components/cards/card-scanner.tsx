@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Camera, RefreshCw } from "lucide-react";
 
 import { scanCard, type ScanFields } from "@/lib/ocr/scan-card";
+import { CardAlignCrop } from "@/components/cards/card-align-crop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,7 @@ type Candidate = {
   setName: string | null;
 };
 
-type Stage = "idle" | "ocr" | "review";
+type Stage = "idle" | "align" | "ocr" | "review";
 
 /**
  * Escáner de carta con la cámara. El OCR (Tesseract.js) corre 100 % en el
@@ -39,6 +40,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
+  const [photo, setPhoto] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [fields, setFields] = useState<ScanFields | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -47,6 +49,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
 
   function reset() {
     setStage("idle");
+    setPhoto(null);
     setProgress(0);
     setFields(null);
     setCandidates([]);
@@ -79,18 +82,25 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
     }
   }
 
-  async function onFile(file: File) {
+  function onFile(file: File) {
+    setPhoto(file);
+    setStage("align");
+    setError(null);
+  }
+
+  async function onAligned(cardCanvas: HTMLCanvasElement) {
     setStage("ocr");
     setProgress(0);
     setError(null);
+    setCandidates([]);
     try {
-      const result = await scanCard(file, setProgress);
+      const result = await scanCard(cardCanvas, setProgress);
       setFields(result);
       setStage("review");
       if (result.name || result.number) void search(result);
     } catch {
       setError(
-        "No se pudo leer la carta. Prueba con más luz y la carta bien encuadrada.",
+        "No se pudo leer la carta. Prueba con más luz y encuadrando bien el recorte.",
       );
       setStage("review");
       setFields({
@@ -128,8 +138,9 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
         <DialogHeader>
           <DialogTitle>Escanear carta</DialogTitle>
           <DialogDescription>
-            Toma una foto de la carta con buena luz y encuadrada. Se lee el
-            nombre y el número (ej. 136/189) para buscarla en el catálogo.
+            Toma una foto de la carta con buena luz. Después ajustas el
+            recuadro sobre la carta para leer bien el nombre y el número (ej.
+            136/189).
           </DialogDescription>
         </DialogHeader>
 
@@ -142,7 +153,7 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
-            if (file) void onFile(file);
+            if (file) onFile(file);
           }}
         />
 
@@ -156,6 +167,14 @@ export function CardScanner({ onPick }: { onPick: (card: Picked) => void }) {
               La foto se procesa en tu teléfono; no se sube a ningún lado.
             </p>
           </div>
+        ) : null}
+
+        {stage === "align" && photo ? (
+          <CardAlignCrop
+            file={photo}
+            onConfirm={(canvas) => void onAligned(canvas)}
+            onCancel={reset}
+          />
         ) : null}
 
         {stage === "ocr" ? (
