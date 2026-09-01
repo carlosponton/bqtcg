@@ -224,23 +224,32 @@ async function getAllCards(uiLang = "es"): Promise<TcgApiCardResume[]> {
 
 // --- Búsqueda de cartas (multi-idioma) ---------------------------------
 
-/** Índice `{id, nombre normalizado}` por idioma, para no normalizar en cada búsqueda. */
+/**
+ * Índice `id → {nombre normalizado, miniatura}` por idioma. Se normaliza y se
+ * resuelve la imagen una sola vez (no en cada búsqueda), y guarda la miniatura
+ * de ESE idioma para poder mostrar la carta en el idioma en que se buscó.
+ */
+type IdxEntry = { norm: string; image: string | null };
 const searchIdxCache = new Map<
   string,
-  { at: number; entries: { id: string; norm: string }[] }
+  { at: number; byId: Map<string, IdxEntry> }
 >();
 
-async function getSearchIndex(
-  uiLang: string,
-): Promise<{ id: string; norm: string }[]> {
+async function getSearchIndex(uiLang: string): Promise<Map<string, IdxEntry>> {
   const tcgLang = SEARCH_LANGS[uiLang] ?? "es";
   const cached = searchIdxCache.get(tcgLang);
-  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.entries;
+  if (cached && Date.now() - cached.at < LIST_TTL_MS) return cached.byId;
 
   const cards = await getAllCards(uiLang);
-  const entries = cards.map((c) => ({ id: c.id, norm: normalize(c.name) }));
-  searchIdxCache.set(tcgLang, { at: Date.now(), entries });
-  return entries;
+  const byId = new Map<string, IdxEntry>();
+  for (const c of cards) {
+    byId.set(c.id, {
+      norm: normalize(c.name),
+      image: cardImage(c.image, "low"),
+    });
+  }
+  searchIdxCache.set(tcgLang, { at: Date.now(), byId });
+  return byId;
 }
 
 function nameScore(norm: string, q: string): number {
@@ -253,9 +262,10 @@ function nameScore(norm: string, q: string): number {
 
 /**
  * Busca una carta por su nombre en CUALQUIERA de los idiomas de `SEARCH_LANGS`
- * (así "Wally" y "Blasco" encuentran la misma carta) y devuelve el resultado
- * con el nombre canónico en español. `resolveCard` luego lo confirma por
- * `card_id`, que es independiente del idioma.
+ * (así "Wally" y "Blasco" encuentran la misma carta). Devuelve el **nombre
+ * canónico en español** y la **miniatura del idioma en que se acertó** (si
+ * buscas "Wally" ves la carta en inglés). `resolveCard` confirma la carta por
+ * `card_id` (independiente del idioma) y el anuncio guarda la versión ES.
  */
 export async function searchCards(
   query: string,
@@ -265,46 +275,53 @@ export async function searchCards(
   if (q.length < 2) return [];
 
   const uiLangs = Object.keys(SEARCH_LANGS);
+  const esIdx = uiLangs.indexOf("es");
   const [esCards, indices] = await Promise.all([
     getAllCards("es").catch(() => [] as TcgApiCardResume[]),
     Promise.all(
       uiLangs.map((l) =>
-        getSearchIndex(l).catch(() => [] as { id: string; norm: string }[]),
+        getSearchIndex(l).catch(() => new Map<string, IdxEntry>()),
       ),
     ),
   ]);
 
   const displayById = new Map(esCards.map((c) => [c.id, c]));
 
-  // Mejor score por card_id, mirando el nombre en todos los idiomas. Se
-  // descartan las cartas que no están en el catálogo ES (sets viejos nunca
-  // traducidos): sin nombre canónico en español no sirven en este marketplace.
-  const best = new Map<string, number>();
-  for (const entries of indices) {
-    for (const { id, norm } of entries) {
+  // Mejor (score, idioma) por card_id. `es` gana los empates de score; un
+  // idioma no-es sólo se elige si acierta mejor. Se descartan las cartas que
+  // no están en el catálogo ES (sets viejos nunca traducidos).
+  const best = new Map<string, { score: number; li: number }>();
+  for (let li = 0; li < indices.length; li++) {
+    for (const [id, entry] of indices[li]) {
       if (!displayById.has(id)) continue;
-      const score = nameScore(norm, q);
+      const score = nameScore(entry.norm, q);
       if (score < 0) continue;
-      const prev = best.get(id);
-      if (prev === undefined || score < prev) best.set(id, score);
+      const cur = best.get(id);
+      if (
+        !cur ||
+        score < cur.score ||
+        (score === cur.score && li === esIdx && cur.li !== esIdx)
+      ) {
+        best.set(id, { score, li });
+      }
     }
   }
 
   return [...best.entries()]
     .sort((a, b) => {
-      if (a[1] !== b[1]) return a[1] - b[1];
+      if (a[1].score !== b[1].score) return a[1].score - b[1].score;
       const na = displayById.get(a[0])?.name ?? a[0];
       const nb = displayById.get(b[0])?.name ?? b[0];
       return na.localeCompare(nb, "es");
     })
     .slice(0, limit)
-    .map(([id]) => {
-      const card = displayById.get(id);
+    .map(([id, { li }]) => {
+      const es = displayById.get(id);
       return {
         id,
-        localId: card?.localId,
-        name: card?.name ?? id,
-        image: cardImage(card?.image, "low"),
+        localId: es?.localId,
+        name: es?.name ?? id,
+        image: indices[li].get(id)?.image ?? cardImage(es?.image, "low"),
       };
     });
 }
