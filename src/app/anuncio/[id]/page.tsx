@@ -49,20 +49,28 @@ async function loadListing(id: string) {
       : [],
   ]);
 
-  const [{ data: photos }, { data: owner }] = await Promise.all([
-    supabase
-      .from("listing_photos")
-      .select("storage_path, sort_order")
-      .eq("listing_id", id)
-      .order("sort_order"),
-    supabase
-      .from("profiles")
-      .select(
-        "username, display_name, avatar_url, city, whatsapp, show_whatsapp, rating_avg, rating_count, is_verified",
-      )
-      .eq("id", listing.user_id)
-      .maybeSingle(),
-  ]);
+  const [{ data: photos }, { data: owner }, { data: deckCards }] =
+    await Promise.all([
+      supabase
+        .from("listing_photos")
+        .select("storage_path, sort_order")
+        .eq("listing_id", id)
+        .order("sort_order"),
+      supabase
+        .from("profiles")
+        .select(
+          "username, display_name, avatar_url, city, whatsapp, show_whatsapp, rating_avg, rating_count, is_verified",
+        )
+        .eq("id", listing.user_id)
+        .maybeSingle(),
+      listing.format === "deck"
+        ? supabase
+            .from("listing_deck_cards")
+            .select("id, card_name, set_name, image_url, quantity, sort_order")
+            .eq("listing_id", id)
+            .order("sort_order")
+        : Promise.resolve({ data: [] as never[] }),
+    ]);
 
   return {
     listing: listing as Listing,
@@ -71,6 +79,7 @@ async function loadListing(id: string) {
     viewer: user,
     myDeal,
     collectionMatches,
+    deckCards: deckCards ?? [],
   };
 }
 
@@ -86,7 +95,11 @@ export async function generateMetadata({
     listing.for_sale && listing.price_cop
       ? ` — ${formatCOP(listing.price_cop)}`
       : "";
-  const title = `${mode}: ${listing.card_name}${price}`;
+  const noun =
+    listing.format === "deck"
+      ? `Deck · ${listing.card_name}`
+      : listing.card_name;
+  const title = `${mode}: ${noun}${price}`;
   const description =
     listing.description ?? `${mode} · ${listing.card_name} en ${SITE_NAME}.`;
 
@@ -110,7 +123,10 @@ export default async function AnuncioPage({
   const data = await loadListing(id);
   if (!data) notFound();
 
-  const { listing, photos, owner, viewer, myDeal, collectionMatches } = data;
+  const { listing, photos, owner, viewer, myDeal, collectionMatches, deckCards } =
+    data;
+  const isDeck = listing.format === "deck";
+  const deckTotal = deckCards.reduce((n, c) => n + (c.quantity ?? 1), 0);
   const isOwner = viewer?.id === listing.user_id;
   const ownerName =
     owner?.display_name || owner?.username || "Usuario";
@@ -157,6 +173,7 @@ export default async function AnuncioPage({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge>{modeLabel}</Badge>
+              {isDeck ? <Badge variant="secondary">Deck</Badge> : null}
               {STATUS_LABEL[listing.status] ? (
                 <Badge variant="secondary">
                   {STATUS_LABEL[listing.status]}
@@ -208,8 +225,12 @@ export default async function AnuncioPage({
                 <dd>{conditionLabel(listing.condition)}</dd>
               </>
             ) : null}
-            <dt className="text-muted-foreground">Cantidad</dt>
-            <dd>{listing.quantity}</dd>
+            {isDeck ? null : (
+              <>
+                <dt className="text-muted-foreground">Cantidad</dt>
+                <dd>{listing.quantity}</dd>
+              </>
+            )}
             {listing.city ? (
               <>
                 <dt className="text-muted-foreground">Ciudad</dt>
@@ -220,6 +241,39 @@ export default async function AnuncioPage({
 
           {listing.description ? (
             <p className="whitespace-pre-line text-sm">{listing.description}</p>
+          ) : null}
+
+          {isDeck && deckCards.length > 0 ? (
+            <div>
+              <p className="mb-2 text-sm font-medium">
+                Cartas del deck ({deckTotal})
+              </p>
+              <ul className="flex flex-col divide-y rounded-lg border">
+                {deckCards.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 p-2">
+                    <CardThumb
+                      src={c.image_url}
+                      alt={c.card_name}
+                      className="w-9 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">{c.card_name}</p>
+                      {c.set_name ? (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {c.set_name}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      x{c.quantity}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Copia guardada al publicar el anuncio.
+              </p>
+            </div>
           ) : null}
 
           {/* Vendedor / contacto */}

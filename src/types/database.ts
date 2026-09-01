@@ -15,7 +15,9 @@ export type Json =
 
 export type ListingKind = "offer" | "want";
 export type ListingStatus = "active" | "reserved" | "closed" | "removed";
+export type ListingFormat = "single" | "deck";
 export type CollectionVisibility = "private" | "unlisted" | "public";
+export type CollectionKind = "folder" | "deck";
 export type DealStatus = "pending" | "confirmed" | "cancelled";
 
 export interface Database {
@@ -73,6 +75,10 @@ export interface Database {
           name: string;
           description: string | null;
           visibility: CollectionVisibility;
+          kind: CollectionKind;
+          cover_card_id: string | null;
+          cover_card_name: string | null;
+          cover_image_url: string | null;
           share_token: string;
           is_default: boolean;
           sort_order: number;
@@ -84,12 +90,19 @@ export interface Database {
           name: string;
           description?: string | null;
           visibility?: CollectionVisibility;
+          kind?: CollectionKind;
+          cover_card_id?: string | null;
+          cover_card_name?: string | null;
+          cover_image_url?: string | null;
           sort_order?: number;
         };
         Update: {
           name?: string;
           description?: string | null;
           visibility?: CollectionVisibility;
+          cover_card_id?: string | null;
+          cover_card_name?: string | null;
+          cover_image_url?: string | null;
           sort_order?: number;
         };
         Relationships: [];
@@ -210,9 +223,11 @@ export interface Database {
           id: string;
           user_id: string;
           kind: ListingKind;
+          format: ListingFormat;
           for_sale: boolean;
           for_trade: boolean;
           source_collection_item_id: string | null;
+          source_collection_id: string | null;
           card_id: string | null;
           custom_card_name: string | null;
           card_name: string;
@@ -266,6 +281,30 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: "listing_photos_listing_id_fkey";
+            columns: ["listing_id"];
+            referencedRelation: "listings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
+      listing_deck_cards: {
+        Row: {
+          id: string;
+          listing_id: string;
+          card_id: string | null;
+          card_name: string;
+          set_name: string | null;
+          image_url: string | null;
+          quantity: number;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: Record<string, never>; // se crea sólo vía rpc('create_listing')
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: "listing_deck_cards_listing_id_fkey";
             columns: ["listing_id"];
             referencedRelation: "listings";
             referencedColumns: ["id"];
@@ -427,6 +466,8 @@ export type CollectionItem =
 export type Listing = Database["public"]["Tables"]["listings"]["Row"];
 export type ListingPhoto =
   Database["public"]["Tables"]["listing_photos"]["Row"];
+export type DeckCard =
+  Database["public"]["Tables"]["listing_deck_cards"]["Row"];
 export type Deal = Database["public"]["Tables"]["deals"]["Row"];
 export type Review = Database["public"]["Tables"]["reviews"]["Row"];
 export type Report = Database["public"]["Tables"]["reports"]["Row"];

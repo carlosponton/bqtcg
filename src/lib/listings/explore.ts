@@ -21,9 +21,17 @@ export const EXPLORE_SORTS = [
 
 export type ExploreSort = (typeof EXPLORE_SORTS)[number]["value"];
 
+export const EXPLORE_FORMATS = [
+  { value: "single", label: "Cartas sueltas" },
+  { value: "deck", label: "Decks" },
+] as const;
+
+export type ExploreFormat = (typeof EXPLORE_FORMATS)[number]["value"];
+
 export type ExploreParams = {
   q: string;
   mode: ExploreMode | null;
+  format: ExploreFormat | null;
   language: string | null;
   condition: string | null;
   priceMin: number | null;
@@ -45,6 +53,7 @@ function toPositiveInt(v: string): number | null {
 
 export function parseExploreParams(sp: RawSearchParams): ExploreParams {
   const modeRaw = one(sp.modo);
+  const formatRaw = one(sp.formato);
   const sortRaw = one(sp.orden);
   const pageRaw = toPositiveInt(one(sp.pagina));
 
@@ -52,6 +61,9 @@ export function parseExploreParams(sp: RawSearchParams): ExploreParams {
     q: one(sp.q).slice(0, 80),
     mode: EXPLORE_MODES.some((m) => m.value === modeRaw)
       ? (modeRaw as ExploreMode)
+      : null,
+    format: EXPLORE_FORMATS.some((f) => f.value === formatRaw)
+      ? (formatRaw as ExploreFormat)
       : null,
     language: one(sp.idioma) || null,
     condition: one(sp.estado) || null,
@@ -69,6 +81,7 @@ export function hasActiveFilters(p: ExploreParams): boolean {
   return Boolean(
     p.q ||
       p.mode ||
+      p.format ||
       p.language ||
       p.condition ||
       p.priceMin != null ||
@@ -83,6 +96,7 @@ export function exploreParamsToQuery(
   const qs = new URLSearchParams();
   if (p.q) qs.set("q", p.q);
   if (p.mode) qs.set("modo", p.mode);
+  if (p.format) qs.set("formato", p.format);
   if (p.language) qs.set("idioma", p.language);
   if (p.condition) qs.set("estado", p.condition);
   if (p.priceMin != null) qs.set("precio_min", String(p.priceMin));

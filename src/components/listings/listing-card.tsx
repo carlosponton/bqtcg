@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import {
   conditionLabel,
+  DECK_LABEL,
   formatCOP,
   languageLabel,
   listingModeLabel,
@@ -26,7 +27,12 @@ export function ListingCard({ item }: { item: ListingListItem }) {
           alt={item.card_name}
           className="w-full transition-transform group-hover:scale-[1.02]"
         />
-        <Badge className="absolute left-2 top-2">{mode}</Badge>
+        <div className="absolute left-2 top-2 flex gap-1">
+          <Badge>{mode}</Badge>
+          {item.format === "deck" ? (
+            <Badge variant="secondary">{DECK_LABEL}</Badge>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-2.5">

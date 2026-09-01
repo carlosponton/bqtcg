@@ -31,10 +31,32 @@ export default async function PublicarPage({
 
   const sp = await searchParams;
   const desde = typeof sp.desde === "string" ? sp.desde : null;
+  const deckId = typeof sp.deck === "string" ? sp.deck : null;
   const modo =
     sp.modo === "sale" || sp.modo === "trade" || sp.modo === "want"
       ? sp.modo
       : undefined;
+
+  let deck: { id: string; name: string; coverImage: string | null } | null =
+    null;
+
+  if (deckId) {
+    const { data } = await supabase
+      .from("collections")
+      .select("id, name, kind, cover_image_url")
+      .eq("id", deckId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!data || data.kind !== "deck") redirect("/coleccion");
+
+    const { count } = await supabase
+      .from("collection_items")
+      .select("id", { count: "exact", head: true })
+      .eq("collection_id", deckId);
+    if (!count) redirect(`/coleccion/${deckId}`);
+
+    deck = { id: data.id, name: data.name, coverImage: data.cover_image_url };
+  }
 
   let fromItem: {
     id: string;
@@ -46,7 +68,7 @@ export default async function PublicarPage({
     condition: string | null;
   } | null = null;
 
-  if (desde) {
+  if (desde && !deck) {
     const { data } = await supabase
       .from("collection_items")
       .select(
@@ -62,10 +84,11 @@ export default async function PublicarPage({
     <div className="mx-auto max-w-lg px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle>Publicar anuncio</CardTitle>
+          <CardTitle>{deck ? "Publicar deck" : "Publicar anuncio"}</CardTitle>
           <CardDescription>
-            Vende, cambia o marca lo que buscas. Venta y cambio requieren al
-            menos una foto real de la carta.
+            {deck
+              ? "Vende o cambia el deck completo. Necesitas al menos una foto real."
+              : "Vende, cambia o marca lo que buscas. Venta y cambio requieren al menos una foto real de la carta."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -74,6 +97,7 @@ export default async function PublicarPage({
             defaultCity={profile.city}
             defaultMode={modo}
             fromCollectionItem={fromItem}
+            deck={deck}
           />
         </CardContent>
       </Card>

@@ -21,6 +21,7 @@ type Props = {
     Listing,
     | "id"
     | "kind"
+    | "format"
     | "for_sale"
     | "for_trade"
     | "card_name"
@@ -38,6 +39,7 @@ type Props = {
 
 export function EditListingForm({ listing }: Props) {
   const isOffer = listing.kind === "offer";
+  const isDeck = listing.format === "deck";
   const [forSale, setForSale] = useState(listing.for_sale);
   const [forTrade, setForTrade] = useState(listing.for_trade);
   const [negotiable, setNegotiable] = useState(listing.price_negotiable);
@@ -72,7 +74,9 @@ export function EditListingForm({ listing }: Props) {
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            La carta no se puede cambiar. Crea otro anuncio si es otra.
+            {isDeck
+              ? "El deck y su lista de cartas no se editan aquí. Cierra el anuncio y publícalo de nuevo para refrescarlo."
+              : "La carta no se puede cambiar. Crea otro anuncio si es otra."}
           </p>
         </div>
       </div>
@@ -176,17 +180,19 @@ export function EditListingForm({ listing }: Props) {
           </select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="quantity">Cantidad</Label>
-          <Input
-            id="quantity"
-            name="quantity"
-            type="number"
-            min={1}
-            max={999}
-            defaultValue={listing.quantity}
-          />
-        </div>
+        {isDeck ? null : (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="quantity">Cantidad</Label>
+            <Input
+              id="quantity"
+              name="quantity"
+              type="number"
+              min={1}
+              max={999}
+              defaultValue={listing.quantity}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

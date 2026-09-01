@@ -28,11 +28,13 @@ export default async function AgregarCartaPage({
 
   const { data: collection } = await supabase
     .from("collections")
-    .select("id, name")
+    .select("id, name, kind")
     .eq("id", collectionId)
     .eq("user_id", user.id)
     .maybeSingle();
   if (!collection) redirect("/coleccion");
+
+  const isDeck = collection.kind === "deck";
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
@@ -40,8 +42,8 @@ export default async function AgregarCartaPage({
         <CardHeader>
           <CardTitle>Agregar carta</CardTitle>
           <CardDescription>
-            A la colección <span className="font-medium">{collection.name}</span>.
-            Sin precio.
+            {isDeck ? "Al deck " : "A la colección "}
+            <span className="font-medium">{collection.name}</span>. Sin precio.
           </CardDescription>
         </CardHeader>
         <CardContent>

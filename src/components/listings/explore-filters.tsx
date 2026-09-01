@@ -5,7 +5,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 
 import { LANGUAGES, CONDITIONS } from "@/lib/listings";
-import { EXPLORE_MODES, EXPLORE_SORTS } from "@/lib/listings/explore";
+import {
+  EXPLORE_FORMATS,
+  EXPLORE_MODES,
+  EXPLORE_SORTS,
+} from "@/lib/listings/explore";
 import { cn } from "@/lib/utils";
 
 const FIELD =
@@ -24,6 +28,7 @@ export function ExploreFilters() {
   const anyActive =
     Boolean(params.get("q")) ||
     Boolean(params.get("modo")) ||
+    Boolean(params.get("formato")) ||
     Boolean(params.get("idioma")) ||
     Boolean(params.get("estado")) ||
     Boolean(params.get("precio_min")) ||
@@ -77,6 +82,20 @@ export function ExploreFilters() {
           {EXPLORE_MODES.map((m) => (
             <option key={m.value} value={m.value}>
               {m.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={params.get("formato") ?? ""}
+          onChange={(e) => push({ formato: e.target.value })}
+          className={FIELD}
+          aria-label="Formato"
+        >
+          <option value="">Carta o deck</option>
+          {EXPLORE_FORMATS.map((f) => (
+            <option key={f.value} value={f.value}>
+              {f.label}
             </option>
           ))}
         </select>

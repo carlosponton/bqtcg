@@ -10,7 +10,7 @@ import {
   setListingStatus,
   type ListingActionResult,
 } from "@/lib/listings/actions";
-import { formatCOP, listingModeLabel } from "@/lib/listings";
+import { DECK_LABEL, formatCOP, listingModeLabel } from "@/lib/listings";
 import type { ListingListItem } from "@/lib/listings/query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,9 @@ export function ListingManageRow({ item }: { item: ListingListItem }) {
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant="outline">{listingModeLabel(item)}</Badge>
+          {item.format === "deck" ? (
+            <Badge variant="secondary">{DECK_LABEL}</Badge>
+          ) : null}
           <Badge variant={status.variant}>{status.label}</Badge>
           {item.for_sale && item.price_cop != null ? (
             <span className="text-sm font-medium">

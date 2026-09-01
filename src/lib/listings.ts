@@ -26,6 +26,9 @@ export const KIND_LABELS: Record<ListingKind, string> = {
   want: "Busco",
 };
 
+/** Distintivo para los anuncios de deck completo. */
+export const DECK_LABEL = "Deck";
+
 type ListingModes = {
   kind: ListingKind;
   for_sale: boolean;

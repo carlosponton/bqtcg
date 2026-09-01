@@ -10,6 +10,8 @@ type SharedCollection = {
     name: string;
     description: string | null;
     visibility: "unlisted" | "public";
+    kind?: "folder" | "deck";
+    cover_image_url?: string | null;
   };
   owner: {
     username: string | null;
@@ -61,20 +63,33 @@ export default async function SharedCollectionPage({
   if (!col) notFound();
 
   const owner = col.owner.display_name || col.owner.username || "Un jugador";
+  const isDeck = col.collection.kind === "deck";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {col.collection.name}
-        </h1>
-        {col.collection.description ? (
-          <p className="mt-1 text-sm text-pretty">{col.collection.description}</p>
+      <header className="mb-6 flex gap-3">
+        {isDeck ? (
+          <CardThumb
+            src={col.collection.cover_image_url ?? null}
+            alt={col.collection.name}
+            className="w-16 shrink-0"
+          />
         ) : null}
-        <p className="mt-1 text-sm text-muted-foreground">
-          {owner} · {col.owner.city || "Barranquilla"} · {col.items.length}{" "}
-          {col.items.length === 1 ? "carta" : "cartas"}
-        </p>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {col.collection.name}
+          </h1>
+          {col.collection.description ? (
+            <p className="mt-1 text-sm text-pretty">
+              {col.collection.description}
+            </p>
+          ) : null}
+          <p className="mt-1 text-sm text-muted-foreground">
+            {isDeck ? "Deck · " : ""}
+            {owner} · {col.owner.city || "Barranquilla"} · {col.items.length}{" "}
+            {col.items.length === 1 ? "carta" : "cartas"}
+          </p>
+        </div>
       </header>
 
       {col.items.length === 0 ? (
