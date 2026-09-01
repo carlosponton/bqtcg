@@ -135,7 +135,7 @@ export async function completeOnboarding(
   const parsed = onboardingSchema.safeParse({
     username: formData.get("username"),
     display_name: formData.get("display_name"),
-    city: formData.get("city") ?? "Barranquilla",
+    city: formData.get("city") ?? "",
     whatsapp: formData.get("whatsapp") ?? "",
     show_whatsapp: formData.get("show_whatsapp") === "on",
   });

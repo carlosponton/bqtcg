@@ -32,7 +32,7 @@ export interface Database {
           bio: string | null;
           whatsapp: string | null;
           show_whatsapp: boolean;
-          city: string;
+          city: string | null;
           is_verified: boolean;
           rating_avg: number;
           rating_count: number;
@@ -50,7 +50,7 @@ export interface Database {
           bio?: string | null;
           whatsapp?: string | null;
           show_whatsapp?: boolean;
-          city?: string;
+          city?: string | null;
           onboarding_completed?: boolean;
         };
         Update: {
@@ -60,7 +60,7 @@ export interface Database {
           bio?: string | null;
           whatsapp?: string | null;
           show_whatsapp?: boolean;
-          city?: string;
+          city?: string | null;
           onboarding_completed?: boolean;
           email_notifications?: boolean;
           tos_accepted_at?: string | null;

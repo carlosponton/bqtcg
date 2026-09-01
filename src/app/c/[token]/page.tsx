@@ -86,7 +86,8 @@ export default async function SharedCollectionPage({
           ) : null}
           <p className="mt-1 text-sm text-muted-foreground">
             {isDeck ? "Deck · " : ""}
-            {owner} · {col.owner.city || "Barranquilla"} · {col.items.length}{" "}
+            {owner}
+            {col.owner.city ? ` · ${col.owner.city}` : ""} · {col.items.length}{" "}
             {col.items.length === 1 ? "carta" : "cartas"}
           </p>
         </div>

@@ -46,13 +46,13 @@ export default async function HomePage() {
         <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
           <span className="inline-flex items-center gap-2 rounded-full border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
             <LogoMark className="size-4" />
-            La comunidad de Pokémon TCG en Barranquilla
+            La comunidad de Pokémon TCG en Colombia
           </span>
           <h1 className="max-w-2xl text-4xl font-extrabold tracking-tight text-balance sm:text-5xl">
             Cambia, vende y encuentra tus cartas de Pokémon TCG
           </h1>
           <p className="max-w-xl text-lg text-muted-foreground text-pretty">
-            {SITE_NAME} reúne a los jugadores del Caribe en un solo lugar: con
+            {SITE_NAME} reúne a los jugadores de Colombia en un solo lugar: con
             perfiles, reputación y avisos cuando aparece la carta que buscas. Sin
             listas de WhatsApp perdidas.
           </p>

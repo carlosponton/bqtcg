@@ -2,10 +2,11 @@
 
 # El Cambista TCG
 
-Marketplace comunitario de cartas de Pokémon TCG para Barranquilla (Colombia):
+Marketplace comunitario de cartas de Pokémon TCG para Colombia:
 vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
 (WhatsApp o en persona), no procesa pagos. Dominio: `elcambistatcg.com`.
-(Antes se llamaba "TCG Barranquilla"; el rebrand vive en `feat/rediseño-el-cambista`.)
+(Antes se llamaba "TCG Barranquilla" y arrancó solo en esa ciudad; el rebrand
+vive en `feat/rediseño-el-cambista`.)
 
 ## Stack
 
@@ -207,3 +208,14 @@ vender / cambiar / marcar como "busco". La plataforma sólo conecta usuarios
   `CardPicker`/cantidad. Acciones nuevas: `createDeck` / `setDeckCover` en
   `src/lib/collection/actions.ts`. `get_public_collections` ahora sólo devuelve
   carpetas (`kind='folder'`).
+- Fase 5 · ciudades (hecha): la plataforma deja de ser sólo Barranquilla.
+  `CITIES` en `@/lib/site` = lista curada de ~90 ciudades de Colombia (capitales
+  + municipios/áreas metropolitanas grandes); el selector la usa tal cual en
+  onboarding / `/perfil` / `/publicar` (ahora obliga a elegir, sin
+  preseleccionado). Migraciones **`20260909000000`..`000002`**: se quita el
+  `default 'Barranquilla'` de `profiles.city` (además pasa a NULLABLE — el
+  trigger `handle_new_user` crea la fila sin ciudad) y de `listings.city` (sigue
+  NOT NULL, la RPC `create_listing` exige ciudad). `complete_onboarding` y
+  `create_listing` sin el fallback `'Barranquilla'`. Copy de marca: "en/de
+  Colombia" en vez de Barranquilla / Caribe (`page.tsx`, `opengraph-image.tsx`,
+  `site-footer.tsx`, `terminos`, `SITE_DESCRIPTION`).

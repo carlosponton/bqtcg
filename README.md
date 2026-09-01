@@ -1,7 +1,7 @@
-# TCG Barranquilla
+# El Cambista TCG
 
-Marketplace comunitario de cartas de **Pokémon TCG** para Barranquilla y su área
-metropolitana: vender, cambiar y marcar cartas que estás **buscando**.
+Marketplace comunitario de cartas de **Pokémon TCG** para Colombia: vender,
+cambiar y marcar cartas que estás **buscando**.
 Inspirado en lo que phptcg.com hace en Medellín.
 
 La plataforma **conecta usuarios** (contacto por WhatsApp o en persona en tienda);

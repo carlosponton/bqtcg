@@ -31,7 +31,7 @@ export type CreateListingInput = {
   price_negotiable: boolean;
   trade_for?: string | null;
   description?: string | null;
-  city?: string | null;
+  city: string;
   photo_paths: string[];
 };
 
@@ -61,7 +61,7 @@ const schema = z
     price_negotiable: z.boolean().catch(false),
     trade_for: z.string().trim().max(500).nullish(),
     description: z.string().trim().max(1000).nullish(),
-    city: z.string().trim().max(60).nullish(),
+    city: z.string().trim().min(1, { error: "Elige tu ciudad." }).max(60),
     photo_paths: z.array(z.string().trim().min(1)).max(6).default([]),
   })
   .refine((d) => d.kind !== "offer" || d.for_sale || d.for_trade, {
@@ -167,18 +167,20 @@ export async function createListing(
     price_negotiable: forSale ? v.price_negotiable : false,
     trade_for: forTrade ? (v.trade_for ?? null) : null,
     description: v.description || null,
-    city: v.city || "Barranquilla",
+    city: v.city,
     photo_paths: isOffer ? v.photo_paths : [],
   };
 
   const { data, error } = await supabase.rpc("create_listing", { payload });
 
   if (error || !data) {
+    const msg = error?.message ?? "";
     return {
       ok: false,
-      error:
-        error?.message?.includes("foto") === true
-          ? "Este anuncio necesita al menos una foto real de la carta."
+      error: msg.includes("foto")
+        ? "Este anuncio necesita al menos una foto real de la carta."
+        : msg.includes("ciudad")
+          ? "Elige tu ciudad."
           : "No se pudo publicar el anuncio. Intenta de nuevo.",
     };
   }

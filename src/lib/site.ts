@@ -4,7 +4,7 @@
 
 export const SITE_NAME = "El Cambista TCG";
 export const SITE_DESCRIPTION =
-  "Compra, vende, cambia y marca cartas de Pokémon TCG que estás buscando en Barranquilla y su área metropolitana.";
+  "Compra, vende, cambia y marca cartas de Pokémon TCG que estás buscando en Colombia.";
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -30,13 +30,104 @@ export const NAV_LINKS = [
 ] as const;
 
 /**
- * Ciudades soportadas. Por ahora solo Barranquilla; se agregan más aquí sin
- * tocar código (ej. "Soledad", "Puerto Colombia", "Galapa", "Malambo",
- * "Cartagena", "Santa Marta", …).
+ * Ciudades de Colombia soportadas (32 capitales departamentales + municipios y
+ * áreas metropolitanas grandes). Lista curada: si falta alguna, se agrega aquí.
+ * El valor guardado en `profiles.city` / `listings.city` es este texto tal cual.
  */
-export const CITIES = ["Barranquilla"] as const;
-
-export const DEFAULT_CITY = CITIES[0];
+export const CITIES = [
+  "Acacías",
+  "Aguachica",
+  "Apartadó",
+  "Arauca",
+  "Armenia",
+  "Barrancabermeja",
+  "Barranquilla",
+  "Bello",
+  "Bogotá",
+  "Bucaramanga",
+  "Buenaventura",
+  "Buga",
+  "Cajicá",
+  "Cali",
+  "Cartagena",
+  "Cartago",
+  "Caucasia",
+  "Cereté",
+  "Chía",
+  "Chinchiná",
+  "Chiquinquirá",
+  "Ciénaga",
+  "Cúcuta",
+  "Dosquebradas",
+  "Duitama",
+  "Envigado",
+  "Espinal",
+  "Facatativá",
+  "Florencia",
+  "Floridablanca",
+  "Funza",
+  "Fusagasugá",
+  "Galapa",
+  "Girardot",
+  "Girón",
+  "Granada",
+  "Ibagué",
+  "Inírida",
+  "Ipiales",
+  "Itagüí",
+  "Jamundí",
+  "La Dorada",
+  "La Estrella",
+  "Leticia",
+  "Lorica",
+  "Madrid",
+  "Magangué",
+  "Maicao",
+  "Malambo",
+  "Manizales",
+  "Medellín",
+  "Melgar",
+  "Mitú",
+  "Mocoa",
+  "Montería",
+  "Montelíbano",
+  "Mosquera",
+  "Neiva",
+  "Ocaña",
+  "Palmira",
+  "Pamplona",
+  "Pasto",
+  "Pereira",
+  "Piedecuesta",
+  "Pitalito",
+  "Popayán",
+  "Puerto Carreño",
+  "Puerto Colombia",
+  "Quibdó",
+  "Riohacha",
+  "Rionegro",
+  "Sabanalarga",
+  "Sabaneta",
+  "Sahagún",
+  "San Andrés",
+  "San José del Guaviare",
+  "Santa Marta",
+  "Sincelejo",
+  "Soacha",
+  "Sogamoso",
+  "Soledad",
+  "Tuluá",
+  "Tumaco",
+  "Tunja",
+  "Turbaco",
+  "Turbo",
+  "Valledupar",
+  "Villa del Rosario",
+  "Villavicencio",
+  "Yopal",
+  "Yumbo",
+  "Zipaquirá",
+] as const;
 
 export type City = (typeof CITIES)[number];
 

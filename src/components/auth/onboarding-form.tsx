@@ -57,9 +57,12 @@ export function OnboardingForm({ defaults }: Props) {
           id="city"
           name="city"
           required
-          defaultValue="Barranquilla"
+          defaultValue=""
           className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
+          <option value="" disabled>
+            Selecciona tu ciudad
+          </option>
           {CITIES.map((city) => (
             <option key={city} value={city}>
               {city}
@@ -67,7 +70,7 @@ export function OnboardingForm({ defaults }: Props) {
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          Por ahora la plataforma es solo para Barranquilla.
+          La ciudad donde harías los intercambios en persona.
         </p>
         <FieldError messages={state.fieldErrors?.city} />
       </div>
