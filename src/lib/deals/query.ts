@@ -7,6 +7,7 @@ import type { DealStatus } from "@/types/database";
 export type DealListItem = {
   id: string;
   status: DealStatus;
+  quantity: number;
   role: "seller" | "buyer";
   iConfirmed: boolean;
   otherConfirmed: boolean;
@@ -23,6 +24,7 @@ type DealRow = {
   seller_id: string;
   buyer_id: string;
   status: DealStatus;
+  quantity: number;
   seller_confirmed: boolean;
   buyer_confirmed: boolean;
   confirmed_at: string | null;
@@ -48,7 +50,7 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
   const { data } = await supabase
     .from("deals")
     .select(
-      "id, listing_id, seller_id, buyer_id, status, seller_confirmed, buyer_confirmed, confirmed_at, created_at, listings(id, card_name, image_url, listing_photos(storage_path, sort_order))",
+      "id, listing_id, seller_id, buyer_id, status, quantity, seller_confirmed, buyer_confirmed, confirmed_at, created_at, listings(id, card_name, image_url, listing_photos(storage_path, sort_order))",
     )
     .or(`seller_id.eq.${userId},buyer_id.eq.${userId}`)
     .order("created_at", { ascending: false })
@@ -98,6 +100,7 @@ export async function listMyDeals(userId: string): Promise<DealListItem[]> {
     return {
       id: r.id,
       status: r.status,
+      quantity: r.quantity ?? 1,
       role,
       iConfirmed: role === "seller" ? r.seller_confirmed : r.buyer_confirmed,
       otherConfirmed:
@@ -142,6 +145,7 @@ export async function hasConfirmedDealWith(
 export type MyDealForListing = {
   id: string;
   status: DealStatus;
+  quantity: number;
   iAmSeller: boolean;
   sellerConfirmed: boolean;
   buyerConfirmed: boolean;
@@ -157,7 +161,7 @@ export async function getMyDealForListing(
   // buscar por `buyer_id`; el índice garantiza <= 1 trato no cancelado.
   const { data } = await supabase
     .from("deals")
-    .select("id, status, seller_id, seller_confirmed, buyer_confirmed")
+    .select("id, status, quantity, seller_id, seller_confirmed, buyer_confirmed")
     .eq("listing_id", listingId)
     .eq("buyer_id", userId)
     .neq("status", "cancelled")
@@ -167,6 +171,7 @@ export async function getMyDealForListing(
   return {
     id: data.id,
     status: data.status,
+    quantity: data.quantity ?? 1,
     iAmSeller: data.seller_id === userId,
     sellerConfirmed: data.seller_confirmed,
     buyerConfirmed: data.buyer_confirmed,

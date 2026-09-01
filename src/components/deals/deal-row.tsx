@@ -56,6 +56,9 @@ export function DealRow({ deal }: { deal: DealListItem }) {
           ) : (
             <Badge variant="secondary">Pendiente</Badge>
           )}
+          {deal.quantity > 1 ? (
+            <Badge variant="outline">×{deal.quantity}</Badge>
+          ) : null}
         </div>
 
         <p className="text-xs text-muted-foreground">

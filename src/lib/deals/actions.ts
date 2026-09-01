@@ -13,6 +13,7 @@ export type DealResult =
   | { ok: false; error: string };
 
 const uuid = z.uuid();
+const dealQty = z.coerce.number().int().min(1).max(999).catch(1);
 
 async function requireUser() {
   const supabase = await createClient();
@@ -26,15 +27,23 @@ type DealForEmail = {
   seller_id: string;
   buyer_id: string;
   status: "pending" | "confirmed" | "cancelled";
+  quantity: number;
   listings: { card_name: string; image_url: string | null } | null;
 };
+
+/** " (N cartas)" cuando el trato cubre más de una; "" si es una sola. */
+function qtyNote(quantity: number): string {
+  return quantity > 1 ? ` (${quantity} cartas)` : "";
+}
 
 /** Correo a la contraparte del que acaba de actuar sobre el trato. */
 async function emailDealCounterparty(dealId: string, actorId: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("deals")
-    .select("seller_id, buyer_id, status, listings(card_name, image_url)")
+    .select(
+      "seller_id, buyer_id, status, quantity, listings(card_name, image_url)",
+    )
     .eq("id", dealId)
     .maybeSingle();
   const deal = data as DealForEmail | null;
@@ -48,7 +57,9 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
     await emailUser(to, {
       subject: "Trato confirmado",
       heading: "El trato quedó confirmado",
-      lines: [`Se confirmó el trato por "${card}". Ya pueden dejarse una reseña.`],
+      lines: [
+        `Se confirmó el trato por "${card}"${qtyNote(deal.quantity)}. Ya pueden dejarse una reseña.`,
+      ],
       ctaLabel: "Ver mis tratos",
       ctaPath: "/panel/tratos",
       imageUrl,
@@ -68,15 +79,20 @@ async function emailDealCounterparty(dealId: string, actorId: string) {
 }
 
 /** El interesado registra un trato a partir de un anuncio ajeno. */
-export async function startDeal(listingId: string): Promise<DealResult> {
+export async function startDeal(
+  listingId: string,
+  quantity = 1,
+): Promise<DealResult> {
   if (!uuid.safeParse(listingId).success) {
     return { ok: false, error: "Anuncio no válido." };
   }
+  const qty = dealQty.parse(quantity);
   const { supabase, user } = await requireUser();
   if (!user) return { ok: false, error: "Inicia sesión para registrar el trato." };
 
   const { data, error } = await supabase.rpc("create_deal", {
     p_listing_id: listingId,
+    p_quantity: qty,
   });
 
   if (error) {
@@ -109,7 +125,9 @@ export async function startDeal(listingId: string): Promise<DealResult> {
     await emailUser(deal.seller_id, {
       subject: "Registraron un trato contigo",
       heading: "Alguien registró un trato contigo",
-      lines: [`Registraron un trato por "${card}". Confírmalo si es correcto.`],
+      lines: [
+        `Registraron un trato por "${card}"${qtyNote(qty)}. Confírmalo si es correcto.`,
+      ],
       ctaLabel: "Ver el trato",
       ctaPath: "/panel/tratos",
       imageUrl: deal.listings?.image_url ?? null,

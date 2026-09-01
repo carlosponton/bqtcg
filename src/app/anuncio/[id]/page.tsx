@@ -228,7 +228,11 @@ export default async function AnuncioPage({
             ) : null}
             {isDeck ? null : (
               <>
-                <dt className="text-muted-foreground">Cantidad</dt>
+                <dt className="text-muted-foreground">
+                  {listing.kind === "want"
+                    ? "Cantidad buscada"
+                    : "Cantidad disponible"}
+                </dt>
                 <dd>{listing.quantity}</dd>
               </>
             )}
@@ -333,6 +337,7 @@ export default async function AnuncioPage({
               <StartDeal
                 listingId={listing.id}
                 listingStatus={listing.status}
+                listingQuantity={listing.quantity}
                 deal={myDeal}
               />
               <div className="-ml-2">
