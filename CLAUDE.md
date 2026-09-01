@@ -174,13 +174,15 @@ vive en `feat/rediseño-el-cambista`.)
   por las 3 RPCs SECURITY DEFINER) — migración `20260902000000_deals.sql`, no
   toca `listings`. UI: `StartDeal` en `/anuncio/[id]`, `/panel/tratos` con
   `DealRow`. Lógica en `src/lib/deals/{actions,query}.ts`.
-  Ajuste de flujo (migración `20260910000000`, luego `20260911000000..001`):
-  un trato lleva **`deals.quantity`** (≥1, elegida en `create_deal(uuid, int)` y
-  acotada a la cantidad del anuncio). Al pasar a `confirmed`, el trigger
-  `deals_settle_listing` descuenta `listings.quantity -= deals.quantity`; sólo si
-  el remanente llega a 0 marca `status='closed'` (nunca toca `removed`) — así un
-  anuncio con varias unidades sigue en home / `/explorar` mientras quede stock.
-  Sustituye a `deals_close_listing`. El picker de cantidad sale en `StartDeal`
+  Ajuste de flujo (migración `20260910000000`, luego `20260911000000..001`,
+  hotfix `20260912000000`): un trato lleva **`deals.quantity`** (≥1, elegida en
+  `create_deal(uuid, int)` y acotada a la cantidad del anuncio). Al pasar a
+  `confirmed`, el trigger `deals_settle_listing` descuenta
+  `listings.quantity -= deals.quantity` **con piso en 1** (poner 0 violaba
+  `listings_quantity_check` y abortaba `confirm_deal`); si el remanente llega a
+  0 marca `status='closed'` (nunca toca `removed`) — así un anuncio con varias
+  unidades sigue en home / `/explorar` mientras quede stock. Sustituye a
+  `deals_close_listing`. El picker de cantidad sale en `StartDeal`
   cuando `listingQuantity > 1` (venta, cambio o busco); `DealRow` muestra `×N`.
   `StartDeal` oculta el CTA "registrar el trato" si el anuncio está
   `closed`/`reserved`, y `confirmDeal` revalida `/`, `/explorar` y el detalle.
