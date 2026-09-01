@@ -101,8 +101,9 @@ vive en `feat/rediseño-el-cambista`.)
 - Fase 0 (hecha): scaffold, auth email + Google, `profiles` + RLS, onboarding, shell.
 - Fase 1 slice 1 (hecha): catálogo + colección + publicar + detalle.
 - Fase 1 slice 2 (hecha): `/explorar` (feed + filtros por URL: texto `ilike` sobre
-  `card_name` con GIN trgm, modo venta/cambio/busco, idioma, estado, rango de
-  precio, orden, paginación) y perfil público `/u/[username]` (anuncios activos +
+  `card_name` con GIN trgm, modo venta/cambio/busco, ciudad (`?ciudad=`, `.eq`
+  contra `CITIES` de `@/lib/site`), idioma, estado, rango de precio, orden,
+  paginación) y perfil público `/u/[username]` (anuncios activos +
   colecciones públicas vía RPC `get_public_collections`). Lógica en
   `src/lib/listings/query.ts` (server-only) + `src/lib/listings/explore.ts`
   (parámetros compartidos). Sin cambios de esquema.

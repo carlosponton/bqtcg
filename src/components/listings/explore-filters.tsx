@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 
 import { LANGUAGES, CONDITIONS } from "@/lib/listings";
+import { CITIES } from "@/lib/site";
 import {
   EXPLORE_FORMATS,
   EXPLORE_MODES,
@@ -29,6 +30,7 @@ export function ExploreFilters() {
     Boolean(params.get("q")) ||
     Boolean(params.get("modo")) ||
     Boolean(params.get("formato")) ||
+    Boolean(params.get("ciudad")) ||
     Boolean(params.get("idioma")) ||
     Boolean(params.get("estado")) ||
     Boolean(params.get("precio_min")) ||
@@ -96,6 +98,20 @@ export function ExploreFilters() {
           {EXPLORE_FORMATS.map((f) => (
             <option key={f.value} value={f.value}>
               {f.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={params.get("ciudad") ?? ""}
+          onChange={(e) => push({ ciudad: e.target.value })}
+          className={FIELD}
+          aria-label="Ciudad"
+        >
+          <option value="">Ciudad</option>
+          {CITIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
             </option>
           ))}
         </select>
