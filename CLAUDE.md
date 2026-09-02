@@ -88,11 +88,14 @@ vive en `feat/rediseño-el-cambista`.)
   `getAllCards(lang)` baja la lista completa de cartas **por idioma** (cache 6 h
   en memoria por idioma). **`searchCards(q)` busca en TODOS los idiomas de
   `SEARCH_LANGS`** (`es`/`en`/`pt`/`fr`/`de`/`it` — comparten numeración de
-  sets; el japonés no) contra un índice normalizado por idioma (`getSearchIndex`,
-  cache 6 h), junta por `card_id` y devuelve **el nombre canónico en español**;
-  descarta las cartas que no están en el catálogo ES. Así "Wally" y "Blasco"
-  encuentran la misma carta sin que el usuario elija idioma. `resolveCard` la
-  confirma por `card_id`. `/api/cards/search?q=`. Se **excluyen** las
+  sets; el japonés no) contra un índice `id → {norm, miniatura}` por idioma
+  (`getSearchIndex`, cache 6 h), junta por `card_id` y devuelve **el nombre
+  canónico en español** + **la miniatura del idioma en que se acertó** (buscar
+  "Wally" muestra la carta en inglés; `es` gana los empates de score). Descarta
+  las cartas que no están en el catálogo ES. Así "Wally" y "Blasco" encuentran
+  la misma carta sin que el usuario elija idioma. `resolveCard` la confirma por
+  `card_id` y el anuncio guarda la versión ES. `/api/cards/search?q=`. Se
+  **excluyen** las
   series de `EXCLUDED_SERIE_IDS` (`tcgp` = Pokémon TCG Pocket): `getExcludedSetIds`
   baja los sets de esas series (cache 6 h; reserva por regex `POCKET_ID_RE`) y
   `getAllCards` los filtra por prefijo de `card.id`. El emparejamiento usa
