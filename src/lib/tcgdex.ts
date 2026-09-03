@@ -10,17 +10,18 @@ import TCGdex, {
 /**
  * Cliente de TCGdex (SDK oficial), en español.
  *
- * `api.tcgdex.net` (nodo principal) no es alcanzable desde algunas redes, así
- * que por defecto se usa el mirror `api.eu1.tcgdex.net`. Cuando el nodo
- * principal vuelva, basta poner `TCGDEX_ENDPOINT=https://api.tcgdex.net/v2` en
- * `.env.local` (o dejarlo vacío para seguir en el mirror).
+ * Por defecto se usa el nodo principal `api.tcgdex.net`. El mirror
+ * `api.eu1.tcgdex.net` tuvo el certificado TLS roto (servía el cert por
+ * defecto de Traefik) y `fetch` fallaba la verificación → el buscador no
+ * traía nada. Override con `TCGDEX_ENDPOINT` en `.env.local` si el principal
+ * se cae y hay que volver al mirror (`https://api.eu1.tcgdex.net/v2`).
  *
  * Estrategia de búsqueda: se descarga UNA vez la lista completa de cartas
  * (cacheada) y se filtra en memoria — más confiable que los filtros del API.
  */
 
 const ENDPOINT =
-  process.env.TCGDEX_ENDPOINT || "https://api.eu1.tcgdex.net/v2";
+  process.env.TCGDEX_ENDPOINT || "https://api.tcgdex.net/v2";
 
 /**
  * Idiomas en los que se puede buscar el nombre de una carta.
