@@ -106,11 +106,13 @@ vive en `feat/rediseño-el-cambista`.)
   libre. En modo "a mano" el `CardPicker` (con `userId`) deja subir una imagen
   opcional que va a `image_url` vía `resolveCard` (`safeImageUrl` exige https).
   Tablas `sets`/`cards` = lectura pública, escritura sólo service key.
-- **`api.tcgdex.net` (nodo principal) no es alcanzable desde la red del usuario.**
-  Se usa el mirror **`api.eu1.tcgdex.net/v2`** — es el default en el código.
-  Override con `TCGDEX_ENDPOINT` en `.env.local` (p. ej. volver a
-  `https://api.tcgdex.net/v2` cuando el principal se recupere). Las imágenes
-  vienen siempre de `assets.tcgdex.net` (no hay mirror de assets).
+- **Endpoint de TCGdex**: default = nodo principal **`api.tcgdex.net/v2`**.
+  El mirror `api.eu1.tcgdex.net` se usó un tiempo (el principal no era
+  alcanzable), pero su cert TLS se rompió (servía el cert por defecto de
+  Traefik) y `fetch` fallaba la verificación → el buscador dejó de traer
+  resultados. Override con `TCGDEX_ENDPOINT` en `.env.local` / env de Vercel
+  si toca cambiar de nodo otra vez. Las imágenes vienen siempre de
+  `assets.tcgdex.net` (no hay mirror de assets).
 - **Precio de referencia (TCGplayer)**: TCGdex reexpone precios en
   `variants_detailed[].pricing.tcgplayer` (sub-objeto por acabado). El SDK no
   los tipa pero `tcgdex.fetch("cards", id)` devuelve el JSON crudo.
